@@ -13,7 +13,6 @@ import {
   isSupabaseKeyValid,
   getSupabaseSession,
   registerSupabasePasskey,
-  signInWithMagicLink,
   signOutSupabase,
 } from '../services/supabase'
 import { copyToClipboard, shortenAddress } from '../utils/format'
@@ -51,7 +50,6 @@ export function DashboardPage() {
   const [address, setAddress] = useState('')
   const isAddressValid = /^0x[a-fA-F0-9]{40}$/.test(address.trim())
   const supabaseAuthStatus = getSupabaseAuthStatus()
-  const [supabaseEmail, setSupabaseEmail] = useState('')
   const [supabaseSessionActive, setSupabaseSessionActive] = useState(false)
 
   useEffect(() => {
@@ -374,22 +372,9 @@ export function DashboardPage() {
             )}
             {isSupabaseConfigured && (
               <div className="glass-panel dark" style={{ marginTop: 12 }}>
-                <h4>Supabase login (magic link)</h4>
+                <h4>Supabase session</h4>
                 <div className="glass-grid" style={{ gap: 10 }}>
-                  <LiquidInput
-                    type="email"
-                    placeholder="email@domain.com"
-                    value={supabaseEmail}
-                    onChange={(event) => setSupabaseEmail(event.target.value)}
-                  />
                   <div className="toolbar">
-                    <LiquidButton
-                      variant="secondary"
-                      onClick={() => signInWithMagicLink(supabaseEmail)}
-                      disabled={!supabaseEmail}
-                    >
-                      Send magic link
-                    </LiquidButton>
                     <LiquidButton variant="secondary" onClick={refreshSupabaseSession}>
                       Check session
                     </LiquidButton>

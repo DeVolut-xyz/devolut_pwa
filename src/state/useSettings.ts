@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import { ChainId } from '@factordao/tokenlist'
 import { readStorage, subscribeStorage, writeStorage } from './storage'
-import { AUTH_STORAGE_KEY } from './useAuth'
-import type { PasskeyProfile } from './useAuth'
-import { isSupabaseConfigured, upsertUserSettings } from '../services/supabase'
+import {
+  fetchUserSettings,
+  getSupabaseSession,
+  isSupabaseConfigured,
+  upsertUserSettings,
+} from '../services/supabase'
 
 const SETTINGS_KEY = 'factor-settings'
 
@@ -49,6 +52,43 @@ export function useSettings() {
     })
   }, [])
 
+  useEffect(() => {
+    const loadFromSupabase = async () => {
+      if (!isSupabaseConfigured) {
+        return
+      }
+      const session = await getSupabaseSession()
+      if (!session) {
+        return
+      }
+      try {
+        const remote = await fetchUserSettings()
+        if (!remote) {
+          return
+        }
+        const next: AppSettings = {
+          chainIds:
+            remote.chain_ids && remote.chain_ids.length > 0
+              ? (remote.chain_ids as ChainId[])
+              : remote.chain_id
+                ? ([remote.chain_id] as ChainId[])
+                : defaultSettings.chainIds,
+          alchemyApiKey: remote.alchemy_api_key ?? '',
+          refreshIntervalMs: remote.refresh_interval_ms ?? 30000,
+        }
+        setSettings(next)
+        writeStorage<AppSettings>(SETTINGS_KEY, next)
+        console.info('[settings] loaded from supabase', {
+          chainIds: next.chainIds,
+          refreshIntervalMs: next.refreshIntervalMs,
+        })
+      } catch (error) {
+        console.error('[settings] supabase load error', error)
+      }
+    }
+    void loadFromSupabase()
+  }, [])
+
   const updateSettings = (next: Partial<AppSettings>) => {
     const updated = { ...settings, ...next }
     setSettings(updated)
@@ -72,8 +112,6 @@ export function useSettings() {
     }
     setSaveStatus('saving')
     setSaveError(null)
-    const profile = readStorage<PasskeyProfile | null>(AUTH_STORAGE_KEY, null)
-    const credentialId = profile?.credentialId
     const maskedKey =
       settings.alchemyApiKey.length > 6
         ? `${settings.alchemyApiKey.slice(0, 4)}...${settings.alchemyApiKey.slice(
@@ -84,14 +122,12 @@ export function useSettings() {
       chainIds: settings.chainIds,
       refreshIntervalMs: settings.refreshIntervalMs,
       alchemyApiKey: maskedKey || 'empty',
-      credentialId: Boolean(credentialId),
     })
     try {
       await upsertUserSettings({
         chainIds: settings.chainIds,
         refreshIntervalMs: settings.refreshIntervalMs,
         alchemyApiKey: settings.alchemyApiKey,
-        credentialId,
       })
       setSaveStatus('success')
       console.info('[settings] supabase save success')

@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import { readStorage, subscribeStorage, writeStorage } from './storage'
-import { AUTH_STORAGE_KEY } from './useAuth'
-import type { PasskeyProfile } from './useAuth'
-import { isSupabaseConfigured, upsertUserProfile } from '../services/supabase'
+import {
+  fetchUserProfile,
+  getSupabaseSession,
+  isSupabaseConfigured,
+  upsertUserProfile,
+} from '../services/supabase'
 
 const PROFILE_KEY = 'factor-user-profile'
 
@@ -36,6 +39,39 @@ export function useProfile() {
     })
   }, [])
 
+  useEffect(() => {
+    const loadFromSupabase = async () => {
+      if (!isSupabaseConfigured) {
+        return
+      }
+      const session = await getSupabaseSession()
+      if (!session) {
+        return
+      }
+      try {
+        const remote = await fetchUserProfile()
+        if (!remote) {
+          return
+        }
+        const next: UserProfile = {
+          nickname: remote.nickname ?? '',
+          email: remote.email ?? '',
+          bio: remote.bio ?? '',
+          avatarDataUrl: remote.avatar_data_url ?? '',
+          updatedAt: remote.updated_at ?? new Date().toISOString(),
+        }
+        setProfile(next)
+        writeStorage<UserProfile>(PROFILE_KEY, next)
+        console.info('[profile] loaded from supabase', {
+          nickname: next.nickname,
+        })
+      } catch (error) {
+        console.error('[profile] supabase load error', error)
+      }
+    }
+    void loadFromSupabase()
+  }, [])
+
   const updateProfile = (next: Partial<UserProfile>) => {
     const updated = {
       ...profile,
@@ -52,18 +88,12 @@ export function useProfile() {
     }
     setSaveStatus('saving')
     setSaveError(null)
-    const authProfile = readStorage<PasskeyProfile | null>(
-      AUTH_STORAGE_KEY,
-      null,
-    )
-    const credentialId = authProfile?.credentialId
     try {
       await upsertUserProfile({
         nickname: profile.nickname,
         email: profile.email,
         bio: profile.bio,
         avatarDataUrl: profile.avatarDataUrl,
-        credentialId,
       })
       setSaveStatus('success')
     } catch (error) {

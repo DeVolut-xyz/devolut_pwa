@@ -1,182 +1,109 @@
 import { useEffect, useState } from 'react'
-import { readStorage, subscribeStorage, writeStorage } from './storage'
+import { isPasskeySupported } from '../utils/passkey'
 import {
-  isPasskeySupported,
-  loginWithPasskey,
-  loginWithAnyPasskey,
-  registerPasskey,
-} from '../utils/passkey'
-import {
-  fetchPasskeyAccountByCredential,
+  authenticateSupabasePasskey,
+  ensureSupabaseUser,
+  fetchPasskeyAccountForUser,
+  getSupabaseSession,
   isSupabaseConfigured,
+  registerSupabasePasskey,
+  signOutSupabase,
   upsertPasskeyAccount,
 } from '../services/supabase'
 
-export const AUTH_STORAGE_KEY = 'factor-auth'
-const PASSKEY_INDEX_KEY = 'factor-passkey-index'
-
 export type PasskeyProfile = {
   username: string
-  credentialId: string
   createdAt: string
 }
 
 export function useAuth() {
-  const [profile, setProfile] = useState<PasskeyProfile | null>(() =>
-    readStorage<PasskeyProfile | null>(AUTH_STORAGE_KEY, null),
-  )
+  const [profile, setProfile] = useState<PasskeyProfile | null>(null)
   const [isSupported, setIsSupported] = useState(false)
   const [lastAuthError, setLastAuthError] = useState<string | null>(null)
-
-  const savePasskeyIndex = (credentialId: string, username: string) => {
-    const current = readStorage<Record<string, string>>(
-      PASSKEY_INDEX_KEY,
-      {},
-    )
-    const next = { ...current, [credentialId]: username }
-    writeStorage(PASSKEY_INDEX_KEY, next)
-  }
-
-  const lookupPasskeyUsername = (credentialId: string) => {
-    const current = readStorage<Record<string, string>>(
-      PASSKEY_INDEX_KEY,
-      {},
-    )
-    return current[credentialId]
-  }
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
     setIsSupported(isPasskeySupported())
-    return subscribeStorage(() => {
-      setProfile(readStorage<PasskeyProfile | null>(AUTH_STORAGE_KEY, null))
-    })
+    const loadSession = async () => {
+      if (!isSupabaseConfigured) {
+        setIsAuthenticated(false)
+        return
+      }
+      try {
+        const user = await ensureSupabaseUser()
+        const session = await getSupabaseSession()
+        setIsAuthenticated(Boolean(session))
+        if (user) {
+          const username =
+            user.email ??
+            (user.user_metadata?.username as string | undefined) ??
+            'User'
+          setProfile({
+            username,
+            createdAt: user.created_at,
+          })
+        }
+      } catch (error) {
+        setIsAuthenticated(false)
+        setLastAuthError(
+          error instanceof Error ? error.message : 'Supabase auth error',
+        )
+      }
+    }
+    void loadSession()
   }, [])
 
   const register = async (username: string) => {
     setLastAuthError(null)
+    if (!isSupabaseConfigured) {
+      throw new Error('Supabase is not configured.')
+    }
+    await ensureSupabaseUser()
     console.info('[auth] register start', { username })
-    const credentialId = await registerPasskey(username)
-    const nextProfile: PasskeyProfile = {
+    await registerSupabasePasskey(username)
+    await upsertPasskeyAccount({
       username,
-      credentialId,
       createdAt: new Date().toISOString(),
-    }
-    writeStorage(AUTH_STORAGE_KEY, nextProfile)
-    setProfile(nextProfile)
-    savePasskeyIndex(credentialId, username)
-    if (isSupabaseConfigured) {
-      console.info('[auth] register supabase sync')
-      await upsertPasskeyAccount({
-        username,
-        credentialId,
-        createdAt: nextProfile.createdAt,
-      })
-    }
-    console.info('[auth] register success', nextProfile)
+    })
+    setProfile({
+      username,
+      createdAt: new Date().toISOString(),
+    })
+    console.info('[auth] register success')
   }
 
   const login = async () => {
     setLastAuthError(null)
-    console.info('[auth] login start', { hasProfile: Boolean(profile) })
-    if (profile) {
-      try {
-        await loginWithPasskey(profile.credentialId)
-      } catch (error) {
-        const credentialId = await loginWithAnyPasskey()
-        const localUsername = lookupPasskeyUsername(credentialId)
-        if (localUsername) {
-          const nextProfile: PasskeyProfile = {
-            username: localUsername,
-            credentialId,
-            createdAt: new Date().toISOString(),
-          }
-          writeStorage(AUTH_STORAGE_KEY, nextProfile)
-          setProfile(nextProfile)
-          console.info('[auth] login success (local index)', nextProfile)
-          return true
-        }
-        if (!isSupabaseConfigured) {
-          setLastAuthError(
-            error instanceof Error ? error.message : 'Login failed',
-          )
-          throw error
-        }
-        const account = await fetchPasskeyAccountByCredential(credentialId)
-        if (!account) {
-          setLastAuthError('Passkey not found on Supabase.')
-          throw new Error('Passkey not found on Supabase.')
-        }
-        const nextProfile: PasskeyProfile = {
-          username: account.username,
-          credentialId,
-          createdAt: account.created_at,
-        }
-          writeStorage(AUTH_STORAGE_KEY, nextProfile)
-        setProfile(nextProfile)
-        savePasskeyIndex(credentialId, account.username)
-        console.info('[auth] login success (supabase)', nextProfile)
-        return true
-      }
-      if (isSupabaseConfigured) {
-        const account = await fetchPasskeyAccountByCredential(
-          profile.credentialId,
-        )
-        if (account && account.username !== profile.username) {
-          const nextProfile = {
-            ...profile,
-            username: account.username,
-          }
-            writeStorage(AUTH_STORAGE_KEY, nextProfile)
-          setProfile(nextProfile)
-        }
-      }
-      console.info('[auth] login success (local)', profile)
-      return true
-    }
-
-    const credentialId = await loginWithAnyPasskey()
-    const localUsername = lookupPasskeyUsername(credentialId)
-    if (localUsername) {
-      const nextProfile: PasskeyProfile = {
-        username: localUsername,
-        credentialId,
-        createdAt: new Date().toISOString(),
-      }
-      writeStorage(AUTH_STORAGE_KEY, nextProfile)
-      setProfile(nextProfile)
-      console.info('[auth] login success (local index, new profile)', nextProfile)
-      return true
-    }
+    console.info('[auth] login start')
     if (!isSupabaseConfigured) {
-      setLastAuthError('No passkey registered yet.')
-      throw new Error('No passkey registered yet.')
+      throw new Error('Supabase is not configured.')
     }
-    const account = await fetchPasskeyAccountByCredential(credentialId)
-    if (!account) {
-      setLastAuthError('Passkey not found on Supabase.')
-      throw new Error('Passkey not found on Supabase.')
+    await ensureSupabaseUser()
+    await authenticateSupabasePasskey()
+    const account = await fetchPasskeyAccountForUser()
+    if (account) {
+      setProfile({
+        username: account.username,
+        createdAt: account.created_at,
+      })
     }
-    const nextProfile: PasskeyProfile = {
-      username: account.username,
-      credentialId,
-      createdAt: account.created_at,
-    }
-    writeStorage(AUTH_STORAGE_KEY, nextProfile)
-    setProfile(nextProfile)
-    savePasskeyIndex(credentialId, account.username)
-    console.info('[auth] login success (supabase, new profile)', nextProfile)
+    setIsAuthenticated(true)
+    console.info('[auth] login success')
     return true
   }
 
   const logout = () => {
-    writeStorage<PasskeyProfile | null>(AUTH_STORAGE_KEY, null)
+    if (isSupabaseConfigured) {
+      void signOutSupabase()
+    }
     setProfile(null)
+    setIsAuthenticated(false)
   }
 
   return {
     profile,
     isSupported,
-    isAuthenticated: Boolean(profile),
+    isAuthenticated,
     register,
     login,
     logout,

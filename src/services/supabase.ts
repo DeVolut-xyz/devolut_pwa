@@ -40,10 +40,12 @@ export const supabase =
 export const isSupabaseConfigured = Boolean(supabase)
 export const isSupabaseKeyValid = isSupabaseKeyMatchingProject()
 let supabaseAuthError: string | null = null
+let supabaseAuthDisabled = false
 
 export function getSupabaseAuthStatus() {
   return {
     error: supabaseAuthError,
+    disabled: supabaseAuthDisabled,
   }
 }
 
@@ -51,7 +53,7 @@ export type SupabasePasskeyAccount = {
   id: string
   user_id: string
   username: string
-  credential_id: string
+  credential_id?: string
   created_at: string
 }
 
@@ -92,29 +94,25 @@ export async function ensureSupabaseUser() {
   if (!supabase) {
     return null
   }
+  if (supabaseAuthDisabled) {
+    return null
+  }
   const {
     data: { session },
   } = await supabase.auth.getSession()
   if (session?.user) {
     return session.user
   }
-  supabaseAuthError = 'No Supabase session. Please login.'
-  return null
-}
-
-export async function signInWithMagicLink(email: string) {
-  if (!supabase) {
-    return null
-  }
-  const { data, error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { shouldCreateUser: true },
-  })
+  const { data, error } = await supabase.auth.signInAnonymously()
   if (error) {
-    supabaseAuthError = error.message
+    const message = error.message || 'Supabase auth error'
+    supabaseAuthError = message
+    if (message.toLowerCase().includes('anonymous sign-ins are disabled')) {
+      supabaseAuthDisabled = true
+    }
     throw error
   }
-  return data
+  return data.user
 }
 
 export async function signOutSupabase() {
@@ -137,10 +135,49 @@ export async function getSupabaseSession() {
   return data.session ?? null
 }
 
+export async function fetchUserSettings() {
+  if (!supabase) {
+    return null
+  }
+  const user = await ensureSupabaseUser()
+  if (!user) {
+    return null
+  }
+  const { data, error } = await supabase
+    .from('user_settings')
+    .select('*')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (error) {
+    throw error
+  }
+  return data as SupabaseUserSettings | null
+}
+
+export async function fetchUserProfile() {
+  if (!supabase) {
+    return null
+  }
+  const user = await ensureSupabaseUser()
+  if (!user) {
+    return null
+  }
+  const { data, error } = await supabase
+    .from('user_profile')
+    .select('*')
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (error) {
+    throw error
+  }
+  return data as SupabaseUserProfile | null
+}
+
 export async function registerSupabasePasskey(friendlyName: string) {
   if (!supabase) {
     return null
   }
+  await ensureSupabaseUser()
   const { data, error } = await supabase.auth.mfa.webauthn.register({
     friendlyName,
   })
@@ -151,9 +188,37 @@ export async function registerSupabasePasskey(friendlyName: string) {
   return data
 }
 
+export async function authenticateSupabasePasskey() {
+  if (!supabase) {
+    return null
+  }
+  await ensureSupabaseUser()
+  const { data: factors, error: factorsError } =
+    await supabase.auth.mfa.listFactors()
+  if (factorsError) {
+    supabaseAuthError = factorsError.message
+    throw factorsError
+  }
+  const webauthnFactor =
+    factors?.all?.find(
+      (factor) =>
+        factor.factor_type === 'webauthn' && factor.status === 'verified',
+    ) ?? null
+  if (!webauthnFactor) {
+    throw new Error('No verified passkey factor found.')
+  }
+  const { data, error } = await supabase.auth.mfa.webauthn.authenticate({
+    factorId: webauthnFactor.id,
+  })
+  if (error) {
+    supabaseAuthError = error.message
+    throw error
+  }
+  return data
+}
+
 export async function upsertPasskeyAccount(input: {
   username: string
-  credentialId: string
   createdAt: string
 }) {
   if (!supabase) {
@@ -169,10 +234,9 @@ export async function upsertPasskeyAccount(input: {
       {
         user_id: user.id,
         username: input.username,
-        credential_id: input.credentialId,
         created_at: input.createdAt,
       },
-      { onConflict: 'credential_id' },
+      { onConflict: 'user_id' },
     )
     .select()
     .maybeSingle()
@@ -182,16 +246,18 @@ export async function upsertPasskeyAccount(input: {
   return data as SupabasePasskeyAccount | null
 }
 
-export async function fetchPasskeyAccountByCredential(
-  credentialId: string,
-): Promise<SupabasePasskeyAccount | null> {
+export async function fetchPasskeyAccountForUser(): Promise<SupabasePasskeyAccount | null> {
   if (!supabase) {
+    return null
+  }
+  const user = await ensureSupabaseUser()
+  if (!user) {
     return null
   }
   const { data, error } = await supabase
     .from('passkey_accounts')
     .select('*')
-    .eq('credential_id', credentialId)
+    .eq('user_id', user.id)
     .maybeSingle()
   if (error) {
     throw error

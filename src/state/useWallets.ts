@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
 import { readStorage, subscribeStorage, writeStorage } from './storage'
-import { AUTH_STORAGE_KEY } from './useAuth'
-import type { PasskeyProfile } from './useAuth'
 import {
   deleteTrackedWallet,
   fetchTrackedWallets,
@@ -24,10 +22,6 @@ export function useWallets() {
   const [wallets, setWallets] = useState<TrackedWallet[]>(() =>
     readStorage<TrackedWallet[]>(WALLETS_KEY, defaultWallets),
   )
-  const getCredentialId = () => {
-    const profile = readStorage<PasskeyProfile | null>(AUTH_STORAGE_KEY, null)
-    return profile?.credentialId
-  }
   const [syncStatus, setSyncStatus] = useState<
     'idle' | 'syncing' | 'error' | 'success'
   >('idle')
@@ -53,9 +47,7 @@ export function useWallets() {
     setSyncError(null)
     console.info('[supabase] wallet sync start')
     try {
-      const remote = await fetchTrackedWallets({
-        credentialId: getCredentialId(),
-      })
+      const remote = await fetchTrackedWallets()
       console.info('[supabase] wallet sync fetched', {
         count: remote.length,
         usingCredential: Boolean(getCredentialId()),
@@ -75,11 +67,10 @@ export function useWallets() {
       if (wallets.length > 0) {
         await Promise.all(
           wallets.map((wallet) =>
-              upsertTrackedWallet({
+            upsertTrackedWallet({
               walletId: wallet.id,
               label: wallet.label,
               address: wallet.address,
-                credentialId: getCredentialId(),
             }),
           ),
         )
@@ -113,7 +104,6 @@ export function useWallets() {
         walletId: created.id,
         label: created.label,
         address: created.address,
-        credentialId: getCredentialId(),
       })
         .then(() => {
           console.info('[supabase] wallet upsert success', {
@@ -132,7 +122,7 @@ export function useWallets() {
     writeStorage(WALLETS_KEY, next)
     console.info('[wallets] remove', { id: walletId })
     if (isSupabaseConfigured) {
-      void deleteTrackedWallet(walletId, getCredentialId())
+      void deleteTrackedWallet(walletId)
         .then(() => {
           console.info('[supabase] wallet delete success', { id: walletId })
         })
