@@ -1,0 +1,46 @@
+{
+  "name": "apy-screningpwa",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@aave/contract-helpers": "^1.37.1",
+    "@aave/math-utils": "^1.37.1",
+    "@bgd-labs/aave-address-book": "^4.42.0",
+    "@factordao/tokenlist": "^1.3.40",
+    "@supabase/supabase-js": "^2.93.2",
+    "alchemy-sdk": "^3.6.5",
+    "axios": "^1.13.4",
+    "bignumber.js": "^9.3.1",
+    "buffer": "^6.0.3",
+    "ethers": "^5.8.0",
+    "lucide-react": "^0.563.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.13.0",
+    "reflect-metadata": "^0.1.14",
+    "viem": "^2.45.0",
+    "vite-plugin-node-polyfills": "^0.25.0",
+    "vite-plugin-pwa": "^1.2.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vite": "^7.2.4"
+  }
+}
