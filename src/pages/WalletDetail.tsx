@@ -41,9 +41,9 @@ export function WalletDetailPage() {
     return (
       <LiquidCard>
         <h3>Wallet not found</h3>
-        <p className="notice">Return to dashboard to add it first.</p>
-        <Link className="glass-button secondary link" to="/">
-          Back to dashboard
+        <p className="notice">Return to home to add it first.</p>
+        <Link className="glass-button secondary link" to="/home">
+          Back to home
         </Link>
       </LiquidCard>
     )

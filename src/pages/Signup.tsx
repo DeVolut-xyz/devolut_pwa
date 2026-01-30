@@ -2,30 +2,32 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../state/useAuth'
 import { isSupabaseConfigured, isSupabaseKeyValid } from '../services/supabase'
-import { LiquidButton, LiquidCard } from '../ui/liquid'
+import { LiquidButton, LiquidCard, LiquidInput } from '../ui/liquid'
 
-export function LoginPage() {
-  const { login, isSupported, lastAuthError } = useAuth()
+export function SignupPage() {
+  const { register, isSupported, lastAuthError } = useAuth()
+  const [username, setUsername] = useState('')
   const [status, setStatus] = useState<string | null>(null)
   const navigate = useNavigate()
   const isSecureContext = typeof window !== 'undefined' && window.isSecureContext
 
-  const onLogin = async () => {
+  const onRegister = async () => {
     try {
-      setStatus('Authenticating...')
-      await login()
+      setStatus('Creating passkey...')
+      await register(username.trim())
+      setStatus('Passkey saved. Redirecting...')
       navigate('/home')
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Failed to login')
+      setStatus(error instanceof Error ? error.message : 'Failed to register')
     }
   }
 
   return (
     <div className="glass-shell">
       <LiquidCard>
-        <div className="glass-title">Login</div>
+        <div className="glass-title">Sign up</div>
         <p className="glass-subtitle">
-          Tap to login. Your device will prompt if a passkey is available.
+          Create a passkey to secure your Factor APY account.
         </p>
         <p className="notice">
           Supabase sync is {isSupabaseConfigured ? 'enabled' : 'disabled'}.
@@ -43,16 +45,20 @@ export function LoginPage() {
             with WebAuthn enabled.
           </p>
         )}
+        <LiquidInput
+          placeholder="Username"
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
+        />
         <div className="toolbar" style={{ marginTop: 16 }}>
           <LiquidButton
-            variant="secondary"
-            onClick={onLogin}
-            disabled={!isSupported || !isSecureContext}
+            onClick={onRegister}
+            disabled={!isSupported || !isSecureContext || username.trim().length < 2}
           >
-            Login with passkey
+            Register passkey
           </LiquidButton>
-          <Link className="glass-button link" to="/signup">
-            Sign up
+          <Link className="glass-button secondary link" to="/login">
+            Login
           </Link>
         </div>
         {status && <p className="notice" style={{ marginTop: 16 }}>{status}</p>}

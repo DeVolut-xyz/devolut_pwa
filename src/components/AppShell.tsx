@@ -1,20 +1,19 @@
 import type { ReactNode } from 'react'
-import { Link, useLocation } from 'react-router-dom'
 import { LiquidButton, LiquidCard } from '../ui/liquid'
 import { useAuth } from '../state/useAuth'
 import { useSettings } from '../state/useSettings'
+import { NavBar } from './NavBar'
 
 type AppShellProps = {
   children: ReactNode
 }
 
 export function AppShell({ children }: AppShellProps) {
-  const location = useLocation()
   const { logout, profile } = useAuth()
   const { settings } = useSettings()
 
   return (
-    <div className="glass-shell">
+    <div className="glass-shell app-shell">
       <LiquidCard className="glass-header">
         <div>
           <div className="glass-title">Factor APY Screener</div>
@@ -26,21 +25,13 @@ export function AppShell({ children }: AppShellProps) {
           {profile && (
             <span className="status-pill">Passkey · {profile.username}</span>
           )}
-          {location.pathname !== '/' && (
-            <Link className="glass-button secondary link" to="/">
-              Dashboard
-            </Link>
-          )}
           <LiquidButton variant="secondary" onClick={logout}>
             Logout
           </LiquidButton>
         </div>
       </LiquidCard>
-      {children}
-      <footer className="notice">
-        Demo PWA uses passkey WebAuthn on-device and local storage. For
-        production, add server-side verification.
-      </footer>
+      <main className="page-content">{children}</main>
+      <NavBar />
     </div>
   )
 }
