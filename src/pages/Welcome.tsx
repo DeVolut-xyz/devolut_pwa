@@ -5,7 +5,7 @@ export function WelcomePage() {
   return (
     <div className="glass-shell">
       <LiquidCard>
-        <div className="glass-title">Welcome to Factor APY</div>
+        <div className="glass-title">Welcome to APY Screener</div>
         <p className="glass-subtitle">
           Monitor live balances, exposures, and APY across your wallets with a
           liquid-glass experience.

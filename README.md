@@ -1,4 +1,4 @@
-# Wallet APYScreener PWA
+# Factor APY Screener PWA
 
 Liquid-glass PWA for real-time wallet balances, exposure, and APY. Uses
 local passkeys plus optional Supabase for account + wallet storage.

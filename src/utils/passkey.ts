@@ -63,7 +63,7 @@ export async function registerPasskey(username: string) {
   const rpId = getRpId()
   console.info('[passkey] register rpId', rpId)
   const publicKey: PublicKeyCredentialCreationOptions = {
-    rp: { name: 'Wallet APYScreener', id: rpId },
+    rp: { name: 'APY Screener', id: rpId },
     user: {
       id: randomBytes(16),
       name: username,
@@ -107,7 +107,7 @@ export async function loginWithPasskey(credentialId: string) {
   const rpId = getRpId()
   console.info('[passkey] login rpId', rpId)
   const request: PublicKeyCredentialRequestOptions = {
-    challenge: encoder.encode('factor-login'),
+    challenge: encoder.encode('apy-login'),
     allowCredentials: [
       {
         id: fromBase64Url(credentialId),
@@ -144,7 +144,7 @@ export async function loginWithAnyPasskey() {
   const rpId = getRpId()
   console.info('[passkey] login any rpId', rpId)
   const request: PublicKeyCredentialRequestOptions = {
-    challenge: encoder.encode('factor-login'),
+    challenge: encoder.encode('apy-login'),
     userVerification: 'preferred',
     rpId,
     timeout: 60000,

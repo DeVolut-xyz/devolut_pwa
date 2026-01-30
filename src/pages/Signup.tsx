@@ -27,7 +27,7 @@ export function SignupPage() {
       <LiquidCard>
         <div className="glass-title">Sign up</div>
         <p className="glass-subtitle">
-          Create a passkey to secure your Wallet APYaccount.
+          Create a passkey to secure your APY Screener account.
         </p>
         <p className="notice">
           Supabase sync is {isSupabaseConfigured ? 'enabled' : 'disabled'}.

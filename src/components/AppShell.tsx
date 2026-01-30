@@ -17,7 +17,7 @@ export function AppShell({ children }: AppShellProps) {
     <div className="glass-shell app-shell">
       <LiquidCard className="glass-header">
         <div>
-          <div className="glass-title">Wallet APYScreener</div>
+          <div className="glass-title">APY Screener</div>
           <div className="glass-subtitle">
             Liquid glass PWA • Chains {settings.chainIds.join(', ')}
           </div>

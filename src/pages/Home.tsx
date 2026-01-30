@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useSettings } from '../state/useSettings'
 import { useWallets } from '../state/useWallets'
 import { usePortfolioData } from '../hooks/usePortfolioData'
+import { isSupabaseConfigured } from '../services/supabase'
 import { formatCurrency, formatPercent, sumWalletValue } from '../services/portfolio'
 import { getTokenLogo } from '../data/tokenLogos'
 import { LiquidButton, LiquidCard } from '../ui/liquid'
@@ -21,6 +22,7 @@ type TopPosition = {
 export function HomePage() {
   const { settings } = useSettings()
   const { wallets, syncFromSupabase, syncStatus, syncError } = useWallets()
+  const supabaseConfigured = isSupabaseConfigured
   const { data, loading, error, refresh } = usePortfolioData({
     wallets,
     chainIds: settings.chainIds,
@@ -162,15 +164,18 @@ export function HomePage() {
                 {wallets.length} wallets
               </span>
               <span
-                className={`status-pill header-chip ${statusTone(syncStatus)}`}
+                className={`status-pill header-chip ${
+                  supabaseConfigured ? statusTone(syncStatus) : 'chip-warn'
+                }`}
               >
                 <Database className="chip-icon" size={14} strokeWidth={1.8} />
-                Supabase {syncStatus}
+                Supabase {supabaseConfigured ? syncStatus : 'offline'}
               </span>
               <LiquidButton
                 variant="secondary"
                 className="header-chip"
                 onClick={syncFromSupabase}
+                disabled={!supabaseConfigured}
               >
                 <RefreshCw className="chip-icon" size={14} strokeWidth={1.8} />
                 Sync now

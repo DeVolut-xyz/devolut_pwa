@@ -25,7 +25,13 @@ export function usePortfolioData({
   )
 
   const refresh = useCallback(async () => {
-    if (!alchemyApiKey || addressList.length === 0) {
+    if (addressList.length === 0) {
+      setError(null)
+      setData({})
+      return
+    }
+    if (!alchemyApiKey) {
+      setError('Add an Alchemy API key in Settings to fetch portfolio data.')
       return
     }
     setLoading(true)

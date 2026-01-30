@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ChainId } from '@factordao/tokenlist'
 import { useSettings } from '../state/useSettings'
 import { useWallets } from '../state/useWallets'
+import { isSupabaseConfigured } from '../services/supabase'
 import { LiquidButton, LiquidCard, LiquidInput } from '../ui/liquid'
 import { copyToClipboard, shortenAddress } from '../utils/format'
 import { Copy, Database, RefreshCw, Save, Wallet } from 'lucide-react'
@@ -19,6 +20,7 @@ export function SettingsPage() {
     useSettings()
   const { wallets, addWallet, removeWallet, syncFromSupabase, syncStatus, syncError } =
     useWallets()
+  const supabaseConfigured = isSupabaseConfigured
   const [label, setLabel] = useState('')
   const [address, setAddress] = useState('')
   const isAddressValid = /^0x[a-fA-F0-9]{40}$/.test(address.trim())
@@ -70,14 +72,19 @@ export function SettingsPage() {
                 <Wallet className="chip-icon" size={14} strokeWidth={1.8} />
                 {wallets.length} wallets
               </span>
-              <span className={`status-pill header-chip ${statusTone(syncStatus)}`}>
+              <span
+                className={`status-pill header-chip ${
+                  supabaseConfigured ? statusTone(syncStatus) : 'chip-warn'
+                }`}
+              >
                 <Database className="chip-icon" size={14} strokeWidth={1.8} />
-                Supabase {syncStatus}
+                Supabase {supabaseConfigured ? syncStatus : 'offline'}
               </span>
               <LiquidButton
                 variant="secondary"
                 className="header-chip"
                 onClick={syncFromSupabase}
+                disabled={!supabaseConfigured}
               >
                 <RefreshCw className="chip-icon" size={14} strokeWidth={1.8} />
                 Sync now
@@ -151,18 +158,23 @@ export function SettingsPage() {
             <div>
               <h3>Data settings</h3>
               <p className="notice">
-                Uses Factor analytics + Alchemy to stream balances.
+                Uses vault analytics + Alchemy to stream balances.
               </p>
             </div>
             <div className="toolbar">
-              <span className={`status-pill header-chip ${statusTone(saveStatus)}`}>
+              <span
+                className={`status-pill header-chip ${
+                  supabaseConfigured ? statusTone(saveStatus) : 'chip-warn'
+                }`}
+              >
                 <Save className="chip-icon" size={14} strokeWidth={1.8} />
-                Save {saveStatus}
+                Save {supabaseConfigured ? saveStatus : 'offline'}
               </span>
               <LiquidButton
                 variant="secondary"
                 className="header-chip"
                 onClick={saveToSupabase}
+                disabled={!supabaseConfigured}
               >
                 <Save className="chip-icon" size={14} strokeWidth={1.8} />
                 Save to Supabase
