@@ -46,4 +46,19 @@ export default defineConfig({
   optimizeDeps: {
     include: ['buffer'],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) {
+            return
+          }
+          if (id.includes('@factordao/tokenlist')) {
+            return 'tokenlist'
+          }
+          return 'vendor'
+        },
+      },
+    },
+  },
 })

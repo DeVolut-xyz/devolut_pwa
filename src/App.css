@@ -218,9 +218,10 @@
 }
 
 .bottom-nav {
-  position: sticky;
+  position: fixed;
   bottom: 24px;
-  align-self: center;
+  left: 50%;
+  transform: translateX(-50%);
   display: inline-flex;
   gap: 8px;
   padding: 8px;
