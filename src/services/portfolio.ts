@@ -53,11 +53,15 @@ export async function fetchWalletPortfolio({
 }): Promise<WalletPortfolio> {
   const deposits: VaultDepositsWithMetadata = {}
   for (const chainId of chainIds) {
-    const analytics = new FactorVaultAnalytics(chainId, alchemyApiKey)
-    const chainDeposits = await analytics.getVaultDeposits(address)
-    for (const [tokenAddress, deposit] of Object.entries(chainDeposits)) {
-      const key = `${chainId}:${tokenAddress}`
-      deposits[key] = deposit
+    try {
+      const analytics = new FactorVaultAnalytics(chainId, alchemyApiKey)
+      const chainDeposits = await analytics.getVaultDeposits(address)
+      for (const [tokenAddress, deposit] of Object.entries(chainDeposits)) {
+        const key = `${chainId}:${tokenAddress}`
+        deposits[key] = deposit
+      }
+    } catch (error) {
+      console.error('[portfolio] chain fetch error', { address, chainId, error })
     }
   }
   const stats = await new FactorVaultAnalytics(

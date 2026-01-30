@@ -124,7 +124,19 @@ export function HomePage() {
                 <Activity className="chip-icon" size={14} strokeWidth={1.8} />
                 {loading ? 'Updating...' : 'Live'}
               </span>
-              <LiquidButton variant="secondary" className="header-chip" onClick={refresh}>
+              <LiquidButton
+                variant="secondary"
+                className="header-chip"
+                onClick={() => {
+                  console.info('[portfolio] refresh click', {
+                    source: 'home',
+                    wallets: wallets.length,
+                    chainIds: settings.chainIds,
+                    hasAlchemyKey: Boolean(settings.alchemyApiKey),
+                  })
+                  refresh()
+                }}
+              >
                 <RefreshCw className="chip-icon" size={14} strokeWidth={1.8} />
                 Refresh now
               </LiquidButton>
