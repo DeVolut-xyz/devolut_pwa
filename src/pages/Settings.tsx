@@ -2,7 +2,11 @@ import { useState } from 'react'
 import { ChainId } from '@factordao/tokenlist'
 import { useSettings } from '../state/useSettings'
 import { useWallets } from '../state/useWallets'
-import { isSupabaseConfigured } from '../services/supabase'
+import {
+  getSupabaseAuthStatus,
+  isSupabaseConfigured,
+  isSupabaseKeyValid,
+} from '../services/supabase'
 import { LiquidButton, LiquidCard, LiquidInput } from '../ui/liquid'
 import { copyToClipboard, shortenAddress } from '../utils/format'
 import { Copy, Database, RefreshCw, Save, Wallet } from 'lucide-react'
@@ -21,6 +25,7 @@ export function SettingsPage() {
   const { wallets, addWallet, removeWallet, syncFromSupabase, syncStatus, syncError } =
     useWallets()
   const supabaseConfigured = isSupabaseConfigured
+  const supabaseAuthStatus = getSupabaseAuthStatus()
   const [label, setLabel] = useState('')
   const [address, setAddress] = useState('')
   const isAddressValid = /^0x[a-fA-F0-9]{40}$/.test(address.trim())
@@ -59,6 +64,21 @@ export function SettingsPage() {
     }
   }
 
+  const supabaseIssue =
+    !supabaseConfigured ||
+    !isSupabaseKeyValid ||
+    supabaseAuthStatus.disabled ||
+    Boolean(supabaseAuthStatus.error)
+  const supabaseMessage = !supabaseConfigured
+    ? 'Supabase not configured.'
+    : !isSupabaseKeyValid
+      ? 'Supabase key mismatch.'
+      : supabaseAuthStatus.disabled
+        ? 'Anonymous sign-in disabled.'
+        : supabaseAuthStatus.error
+          ? `Supabase auth error: ${supabaseAuthStatus.error}`
+          : null
+
   return (
     <div className="glass-grid" style={{ gap: 24 }}>
       <section className="glass-grid two">
@@ -94,6 +114,11 @@ export function SettingsPage() {
           {syncError && (
             <p className="notice" style={{ marginTop: 8 }}>
               {syncError}
+            </p>
+          )}
+          {supabaseIssue && supabaseMessage && (
+            <p className="notice" style={{ marginTop: 8 }}>
+              {supabaseMessage}
             </p>
           )}
           <div className="glass-grid" style={{ gap: 12 }}>
@@ -225,6 +250,11 @@ export function SettingsPage() {
             {saveError && (
               <p className="notice" style={{ marginTop: 8 }}>
                 {saveError}
+              </p>
+            )}
+            {supabaseIssue && supabaseMessage && (
+              <p className="notice" style={{ marginTop: 8 }}>
+                {supabaseMessage}
               </p>
             )}
           </div>

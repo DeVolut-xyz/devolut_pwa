@@ -13,6 +13,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['pwa.svg'],
+      devOptions: {
+        enabled: false,
+      },
       workbox: {
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },

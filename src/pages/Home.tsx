@@ -3,7 +3,11 @@ import { Link } from 'react-router-dom'
 import { useSettings } from '../state/useSettings'
 import { useWallets } from '../state/useWallets'
 import { usePortfolioData } from '../hooks/usePortfolioData'
-import { isSupabaseConfigured } from '../services/supabase'
+import {
+  getSupabaseAuthStatus,
+  isSupabaseConfigured,
+  isSupabaseKeyValid,
+} from '../services/supabase'
 import { formatCurrency, formatPercent, sumWalletValue } from '../services/portfolio'
 import { getTokenLogo } from '../data/tokenLogos'
 import { LiquidButton, LiquidCard } from '../ui/liquid'
@@ -23,6 +27,7 @@ export function HomePage() {
   const { settings } = useSettings()
   const { wallets, syncFromSupabase, syncStatus, syncError } = useWallets()
   const supabaseConfigured = isSupabaseConfigured
+  const supabaseAuthStatus = getSupabaseAuthStatus()
   const { data, loading, error, refresh } = usePortfolioData({
     wallets,
     chainIds: settings.chainIds,
@@ -83,6 +88,21 @@ export function HomePage() {
         return 'chip-warn'
     }
   }
+
+  const supabaseIssue =
+    !supabaseConfigured ||
+    !isSupabaseKeyValid ||
+    supabaseAuthStatus.disabled ||
+    Boolean(supabaseAuthStatus.error)
+  const supabaseMessage = !supabaseConfigured
+    ? 'Supabase not configured.'
+    : !isSupabaseKeyValid
+      ? 'Supabase key mismatch.'
+      : supabaseAuthStatus.disabled
+        ? 'Anonymous sign-in disabled.'
+        : supabaseAuthStatus.error
+          ? `Supabase auth error: ${supabaseAuthStatus.error}`
+          : null
 
   return (
     <div className="glass-grid" style={{ gap: 24 }}>
@@ -189,6 +209,11 @@ export function HomePage() {
           {syncError && (
             <p className="notice error-log" style={{ marginTop: 8 }}>
               {syncError}
+            </p>
+          )}
+          {supabaseIssue && supabaseMessage && (
+            <p className="notice error-log" style={{ marginTop: 8 }}>
+              {supabaseMessage}
             </p>
           )}
           <div className="glass-grid" style={{ gap: 12 }}>

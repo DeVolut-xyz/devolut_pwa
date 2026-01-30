@@ -351,30 +351,45 @@ export async function upsertTrackedWallet(input: {
     address: input.address,
     ...(input.credentialId ? { credential_id: input.credentialId } : {}),
   }
-  let response = await supabase
+  let lookup = supabase
     .from('tracked_wallets')
-    .upsert(payload as Database['public']['Tables']['tracked_wallets']['Insert'], { onConflict: 'wallet_id' })
-    .select()
+    .select('id')
+    .eq('wallet_id', input.walletId)
+    .eq('user_id', user.id)
     .maybeSingle()
-  if (response.error && input.credentialId) {
-    response = await supabase
+  if (input.credentialId) {
+    lookup = supabase
       .from('tracked_wallets')
-      .upsert(
-        {
-          user_id: user.id,
-          wallet_id: input.walletId,
-          label: input.label,
-          address: input.address,
-        } as Database['public']['Tables']['tracked_wallets']['Insert'],
-        { onConflict: 'wallet_id' },
-      )
-      .select()
+      .select('id')
+      .eq('wallet_id', input.walletId)
+      .eq('credential_id', input.credentialId)
       .maybeSingle()
   }
-  if (response.error) {
-    throw response.error
+  const existing = await lookup
+  if (existing.error) {
+    throw existing.error
   }
-  return response.data as SupabaseWallet | null
+  if (existing.data?.id) {
+    const { data, error } = await supabase
+      .from('tracked_wallets')
+      .update(payload as Database['public']['Tables']['tracked_wallets']['Update'])
+      .eq('id', existing.data.id)
+      .select()
+      .maybeSingle()
+    if (error) {
+      throw error
+    }
+    return data as SupabaseWallet | null
+  }
+  const { data, error } = await supabase
+    .from('tracked_wallets')
+    .insert(payload as Database['public']['Tables']['tracked_wallets']['Insert'])
+    .select()
+    .maybeSingle()
+  if (error) {
+    throw error
+  }
+  return data as SupabaseWallet | null
 }
 
 export async function deleteTrackedWallet(
@@ -427,31 +442,43 @@ export async function upsertUserSettings(input: {
     alchemy_api_key: input.alchemyApiKey,
     ...(input.credentialId ? { credential_id: input.credentialId } : {}),
   }
-  const conflictTarget = input.credentialId ? 'credential_id' : 'user_id'
-  let response = await supabase
+  let lookup = supabase
     .from('user_settings')
-    .upsert(payload as Database['public']['Tables']['user_settings']['Insert'], { onConflict: conflictTarget })
-    .select()
+    .select('id')
+    .eq('user_id', user.id)
     .maybeSingle()
-  if (response.error && input.credentialId) {
-    response = await supabase
+  if (input.credentialId) {
+    lookup = supabase
       .from('user_settings')
-      .upsert(
-        {
-          user_id: user.id,
-          chain_id: input.chainIds[0],
-          refresh_interval_ms: input.refreshIntervalMs,
-          alchemy_api_key: input.alchemyApiKey,
-        } as Database['public']['Tables']['user_settings']['Insert'],
-        { onConflict: 'user_id' },
-      )
-      .select()
+      .select('id')
+      .eq('credential_id', input.credentialId)
       .maybeSingle()
   }
-  if (response.error) {
-    throw response.error
+  const existing = await lookup
+  if (existing.error) {
+    throw existing.error
   }
-  return response.data as SupabaseUserSettings | null
+  if (existing.data?.id) {
+    const { data, error } = await supabase
+      .from('user_settings')
+      .update(payload as Database['public']['Tables']['user_settings']['Update'])
+      .eq('id', existing.data.id)
+      .select()
+      .maybeSingle()
+    if (error) {
+      throw error
+    }
+    return data as SupabaseUserSettings | null
+  }
+  const { data, error } = await supabase
+    .from('user_settings')
+    .insert(payload as Database['public']['Tables']['user_settings']['Insert'])
+    .select()
+    .maybeSingle()
+  if (error) {
+    throw error
+  }
+  return data as SupabaseUserSettings | null
 }
 
 export async function upsertUserProfile(input: {
@@ -477,31 +504,41 @@ export async function upsertUserProfile(input: {
     updated_at: new Date().toISOString(),
     ...(input.credentialId ? { credential_id: input.credentialId } : {}),
   }
-  const conflictTarget = input.credentialId ? 'credential_id' : 'user_id'
-  let response = await supabase
+  let lookup = supabase
     .from('user_profile')
-    .upsert(payload as Database['public']['Tables']['user_profile']['Insert'], { onConflict: conflictTarget })
-    .select()
+    .select('id')
+    .eq('user_id', user.id)
     .maybeSingle()
-  if (response.error && input.credentialId) {
-    response = await supabase
+  if (input.credentialId) {
+    lookup = supabase
       .from('user_profile')
-      .upsert(
-        {
-          user_id: user.id,
-          nickname: input.nickname,
-          email: input.email,
-          bio: input.bio,
-          avatar_data_url: input.avatarDataUrl,
-          updated_at: new Date().toISOString(),
-        } as Database['public']['Tables']['user_profile']['Insert'],
-        { onConflict: 'user_id' },
-      )
-      .select()
+      .select('id')
+      .eq('credential_id', input.credentialId)
       .maybeSingle()
   }
-  if (response.error) {
-    throw response.error
+  const existing = await lookup
+  if (existing.error) {
+    throw existing.error
   }
-  return response.data as SupabaseUserProfile | null
+  if (existing.data?.id) {
+    const { data, error } = await supabase
+      .from('user_profile')
+      .update(payload as Database['public']['Tables']['user_profile']['Update'])
+      .eq('id', existing.data.id)
+      .select()
+      .maybeSingle()
+    if (error) {
+      throw error
+    }
+    return data as SupabaseUserProfile | null
+  }
+  const { data, error } = await supabase
+    .from('user_profile')
+    .insert(payload as Database['public']['Tables']['user_profile']['Insert'])
+    .select()
+    .maybeSingle()
+  if (error) {
+    throw error
+  }
+  return data as SupabaseUserProfile | null
 }
