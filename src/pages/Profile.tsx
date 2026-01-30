@@ -1,3 +1,4 @@
+import { Save } from 'lucide-react'
 import { LiquidButton, LiquidCard, LiquidInput } from '../ui/liquid'
 import { useProfile } from '../state/useProfile'
 
@@ -10,6 +11,19 @@ export function ProfilePage() {
     saveError,
   } = useProfile()
 
+  const statusTone = (status: 'idle' | 'saving' | 'success' | 'error') => {
+    switch (status) {
+      case 'success':
+        return 'chip-success'
+      case 'error':
+        return 'chip-error'
+      case 'saving':
+        return 'chip-info'
+      default:
+        return 'chip-warn'
+    }
+  }
+
   return (
     <div className="glass-grid" style={{ gap: 24 }}>
       <section>
@@ -20,8 +34,16 @@ export function ProfilePage() {
               <p className="notice">Personalize your account details.</p>
             </div>
             <div className="toolbar">
-              <span className="status-pill">Save {saveStatus}</span>
-              <LiquidButton variant="secondary" onClick={saveToSupabase}>
+              <span className={`status-pill header-chip ${statusTone(saveStatus)}`}>
+                <Save className="chip-icon" size={14} strokeWidth={1.8} />
+                Save {saveStatus}
+              </span>
+              <LiquidButton
+                variant="secondary"
+                className="header-chip"
+                onClick={saveToSupabase}
+              >
+                <Save className="chip-icon" size={14} strokeWidth={1.8} />
                 Save profile
               </LiquidButton>
             </div>

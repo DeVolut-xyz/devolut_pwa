@@ -7,7 +7,7 @@ import { formatCurrency, formatPercent, sumWalletValue } from '../services/portf
 import { getTokenLogo } from '../data/tokenLogos'
 import { LiquidButton, LiquidCard } from '../ui/liquid'
 import { copyToClipboard, shortenAddress } from '../utils/format'
-import { Copy } from 'lucide-react'
+import { Activity, Copy, Database, RefreshCw, Wallet } from 'lucide-react'
 
 type TopPosition = {
   address: string
@@ -69,6 +69,19 @@ export function HomePage() {
       .slice(0, 6)
   }, [data])
 
+  const statusTone = (status: 'idle' | 'syncing' | 'error' | 'success') => {
+    switch (status) {
+      case 'success':
+        return 'chip-success'
+      case 'error':
+        return 'chip-error'
+      case 'syncing':
+        return 'chip-info'
+      default:
+        return 'chip-warn'
+    }
+  }
+
   return (
     <div className="glass-grid" style={{ gap: 24 }}>
       <section>
@@ -81,10 +94,16 @@ export function HomePage() {
               </div>
             </div>
             <div className="toolbar">
-              <span className="status-pill">
+              <span
+                className={`status-pill header-chip ${
+                  loading ? 'chip-info' : 'chip-success'
+                }`}
+              >
+                <Activity className="chip-icon" size={14} strokeWidth={1.8} />
                 {loading ? 'Updating...' : 'Live'}
               </span>
-              <LiquidButton variant="secondary" onClick={refresh}>
+              <LiquidButton variant="secondary" className="header-chip" onClick={refresh}>
+                <RefreshCw className="chip-icon" size={14} strokeWidth={1.8} />
                 Refresh now
               </LiquidButton>
             </div>
@@ -123,7 +142,11 @@ export function HomePage() {
               </div>
             </LiquidCard>
           </div>
-          {error && <p className="notice" style={{ marginTop: 12 }}>{error}</p>}
+          {error && (
+            <p className="notice error-log" style={{ marginTop: 12 }}>
+              {error}
+            </p>
+          )}
         </LiquidCard>
       </section>
 
@@ -132,22 +155,34 @@ export function HomePage() {
           <div className="glass-header">
             <div>
               <h3>Tracked wallets</h3>
-              <p className="notice">
-                Add addresses to monitor balances, APY, and exposure.
-              </p>
             </div>
             <div className="toolbar">
-              <span className="status-pill">Supabase {syncStatus}</span>
-              <LiquidButton variant="secondary" onClick={syncFromSupabase}>
+              <span className="status-pill header-chip chip-info">
+                <Wallet className="chip-icon" size={14} strokeWidth={1.8} />
+                {wallets.length} wallets
+              </span>
+              <span
+                className={`status-pill header-chip ${statusTone(syncStatus)}`}
+              >
+                <Database className="chip-icon" size={14} strokeWidth={1.8} />
+                Supabase {syncStatus}
+              </span>
+              <LiquidButton
+                variant="secondary"
+                className="header-chip"
+                onClick={syncFromSupabase}
+              >
+                <RefreshCw className="chip-icon" size={14} strokeWidth={1.8} />
                 Sync now
               </LiquidButton>
-              <Link className="glass-button secondary link" to="/settings">
+              <Link className="glass-button secondary link header-chip" to="/settings">
+                <Wallet className="chip-icon" size={14} strokeWidth={1.8} />
                 Manage wallets
               </Link>
             </div>
           </div>
           {syncError && (
-            <p className="notice" style={{ marginTop: 8 }}>
+            <p className="notice error-log" style={{ marginTop: 8 }}>
               {syncError}
             </p>
           )}
@@ -155,10 +190,12 @@ export function HomePage() {
             {wallets.length === 0 && (
               <p className="notice">No wallets yet. Add your first address.</p>
             )}
-            {wallets.map((wallet) => {
-              const portfolio = data[wallet.address.toLowerCase()]
-              return (
-                <LiquidCard key={wallet.id} variant="dark" className="wallet-card">
+            {wallets.map((wallet) => (
+                <LiquidCard
+                  key={wallet.id}
+                  variant="dark"
+                  className="wallet-card compact"
+                >
                   <div className="wallet-title">
                     <div>
                       <strong>{wallet.label}</strong>
@@ -180,17 +217,8 @@ export function HomePage() {
                       </Link>
                     </div>
                   </div>
-                  <div className="wallet-balance">
-                    {portfolio ? formatCurrency(sumWalletValue(portfolio)) : '—'}
-                  </div>
-                  <div className="wallet-meta">
-                    {portfolio
-                      ? `Net APY ${formatPercent(portfolio.stats.calculated_apy)}`
-                      : 'Waiting for sync'}
-                  </div>
                 </LiquidCard>
-              )
-            })}
+            ))}
           </div>
         </LiquidCard>
       </section>

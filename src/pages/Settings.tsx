@@ -4,7 +4,7 @@ import { useSettings } from '../state/useSettings'
 import { useWallets } from '../state/useWallets'
 import { LiquidButton, LiquidCard, LiquidInput } from '../ui/liquid'
 import { copyToClipboard, shortenAddress } from '../utils/format'
-import { Copy } from 'lucide-react'
+import { Copy, Database, RefreshCw, Save, Wallet } from 'lucide-react'
 
 const chainOptions = [
   { label: 'Ethereum', value: ChainId.ETHEREUM },
@@ -43,6 +43,20 @@ export function SettingsPage() {
     setAddress('')
   }
 
+  const statusTone = (status: 'idle' | 'syncing' | 'error' | 'success' | 'saving') => {
+    switch (status) {
+      case 'success':
+        return 'chip-success'
+      case 'error':
+        return 'chip-error'
+      case 'syncing':
+      case 'saving':
+        return 'chip-info'
+      default:
+        return 'chip-warn'
+    }
+  }
+
   return (
     <div className="glass-grid" style={{ gap: 24 }}>
       <section className="glass-grid two">
@@ -50,13 +64,22 @@ export function SettingsPage() {
           <div className="glass-header">
             <div>
               <h3>Tracked wallets</h3>
-              <p className="notice">
-                Add addresses to monitor balances, APY, and exposure.
-              </p>
             </div>
             <div className="toolbar">
-              <span className="status-pill">Supabase {syncStatus}</span>
-              <LiquidButton variant="secondary" onClick={syncFromSupabase}>
+              <span className="status-pill header-chip chip-info">
+                <Wallet className="chip-icon" size={14} strokeWidth={1.8} />
+                {wallets.length} wallets
+              </span>
+              <span className={`status-pill header-chip ${statusTone(syncStatus)}`}>
+                <Database className="chip-icon" size={14} strokeWidth={1.8} />
+                Supabase {syncStatus}
+              </span>
+              <LiquidButton
+                variant="secondary"
+                className="header-chip"
+                onClick={syncFromSupabase}
+              >
+                <RefreshCw className="chip-icon" size={14} strokeWidth={1.8} />
                 Sync now
               </LiquidButton>
             </div>
@@ -71,7 +94,11 @@ export function SettingsPage() {
               <p className="notice">No wallets yet. Add your first address.</p>
             )}
             {wallets.map((wallet) => (
-              <LiquidCard key={wallet.id} variant="dark" className="wallet-card">
+              <LiquidCard
+                key={wallet.id}
+                variant="dark"
+                className="wallet-card compact"
+              >
                 <div className="wallet-title">
                   <div>
                     <strong>{wallet.label}</strong>
@@ -128,8 +155,16 @@ export function SettingsPage() {
               </p>
             </div>
             <div className="toolbar">
-              <span className="status-pill">Save {saveStatus}</span>
-              <LiquidButton variant="secondary" onClick={saveToSupabase}>
+              <span className={`status-pill header-chip ${statusTone(saveStatus)}`}>
+                <Save className="chip-icon" size={14} strokeWidth={1.8} />
+                Save {saveStatus}
+              </span>
+              <LiquidButton
+                variant="secondary"
+                className="header-chip"
+                onClick={saveToSupabase}
+              >
+                <Save className="chip-icon" size={14} strokeWidth={1.8} />
                 Save to Supabase
               </LiquidButton>
             </div>

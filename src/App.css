@@ -2,6 +2,10 @@
   min-height: 100vh;
 }
 
+body {
+  -webkit-text-size-adjust: 100%;
+}
+
 .glass-shell {
   display: flex;
   min-height: 100vh;
@@ -156,6 +160,11 @@
   gap: 12px;
   width: 100%;
   max-width: 520px;
+}
+
+.wallet-card.compact {
+  gap: 8px;
+  padding: 14px 16px;
 }
 
 .wallet-title {
@@ -339,9 +348,68 @@
   color: rgba(207, 239, 255, 0.95);
 }
 
+.header-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  background: rgba(121, 215, 255, 0.16);
+  border: 1px solid rgba(121, 215, 255, 0.28);
+  color: rgba(230, 245, 255, 0.95);
+  box-shadow: 0 8px 18px rgba(25, 80, 120, 0.22);
+  backdrop-filter: blur(12px);
+  text-decoration: none;
+}
+
+.header-chip .chip-icon {
+  flex: 0 0 auto;
+}
+
+.header-chip.glass-button {
+  background: rgba(121, 215, 255, 0.2);
+  color: rgba(235, 237, 255, 0.95);
+}
+
+.header-chip.glass-button.secondary {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(235, 237, 255, 0.92);
+}
+
+.header-chip.chip-success {
+  background: rgba(92, 220, 167, 0.18);
+  border-color: rgba(92, 220, 167, 0.4);
+  color: rgba(222, 255, 240, 0.95);
+}
+
+.header-chip.chip-warn {
+  background: rgba(255, 195, 105, 0.18);
+  border-color: rgba(255, 195, 105, 0.45);
+  color: rgba(255, 245, 230, 0.95);
+}
+
+.header-chip.chip-error {
+  background: rgba(255, 110, 110, 0.18);
+  border-color: rgba(255, 110, 110, 0.45);
+  color: rgba(255, 230, 230, 0.95);
+}
+
+.header-chip.chip-info {
+  background: rgba(121, 215, 255, 0.22);
+  border-color: rgba(121, 215, 255, 0.45);
+  color: rgba(230, 245, 255, 0.95);
+}
+
 .notice {
   font-size: 0.85rem;
   color: rgba(230, 233, 255, 0.7);
+}
+
+.notice.error-log {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .nav-actions {
@@ -359,6 +427,19 @@
 
   .wallet-card {
     max-width: 100%;
+  }
+
+  .header-chip {
+    padding: 4px 10px;
+    font-size: 0.72rem;
+  }
+
+  .glass-input,
+  .glass-select,
+  input,
+  select,
+  textarea {
+    font-size: 16px;
   }
 
   .bottom-nav {

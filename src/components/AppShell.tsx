@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { KeyRound, LogOut } from 'lucide-react'
 import { LiquidButton, LiquidCard } from '../ui/liquid'
 import { useAuth } from '../state/useAuth'
 import { useSettings } from '../state/useSettings'
@@ -23,9 +24,13 @@ export function AppShell({ children }: AppShellProps) {
         </div>
         <div className="nav-actions">
           {profile && (
-            <span className="status-pill">Passkey · {profile.username}</span>
+            <span className="status-pill header-chip">
+              <KeyRound className="chip-icon" size={14} strokeWidth={1.8} />
+              Passkey · {profile.username}
+            </span>
           )}
-          <LiquidButton variant="secondary" onClick={logout}>
+          <LiquidButton variant="secondary" className="header-chip" onClick={logout}>
+            <LogOut className="chip-icon" size={14} strokeWidth={1.8} />
             Logout
           </LiquidButton>
         </div>

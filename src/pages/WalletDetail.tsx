@@ -7,7 +7,7 @@ import { formatCurrency, formatPercent, sumWalletValue } from '../services/portf
 import { getTokenLogo } from '../data/tokenLogos'
 import { LiquidButton, LiquidCard } from '../ui/liquid'
 import { copyToClipboard, shortenAddress } from '../utils/format'
-import { Copy } from 'lucide-react'
+import { Activity, Copy, RefreshCw } from 'lucide-react'
 
 export function WalletDetailPage() {
   const params = useParams()
@@ -69,10 +69,14 @@ export function WalletDetailPage() {
             </div>
           </div>
           <div className="toolbar">
-            <span className="status-pill">
+            <span
+              className={`status-pill header-chip ${loading ? 'chip-info' : 'chip-success'}`}
+            >
+              <Activity className="chip-icon" size={14} strokeWidth={1.8} />
               {loading ? 'Updating...' : 'Live'}
             </span>
-            <LiquidButton variant="secondary" onClick={refresh}>
+            <LiquidButton variant="secondary" className="header-chip" onClick={refresh}>
+              <RefreshCw className="chip-icon" size={14} strokeWidth={1.8} />
               Refresh now
             </LiquidButton>
           </div>
