@@ -63,7 +63,7 @@ export async function fetchWalletPortfolio({
   const stats = await new FactorVaultAnalytics(
     chainIds[0] ?? ChainId.ETHEREUM,
     alchemyApiKey,
-  ).calculateVaultStats(deposits)
+  ).calculateVaultStats(deposits as Parameters<FactorVaultAnalytics['calculateVaultStats']>[0])
   return {
     address,
     deposits,

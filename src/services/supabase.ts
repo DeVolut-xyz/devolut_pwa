@@ -1,5 +1,38 @@
 import { createClient } from '@supabase/supabase-js'
 
+type Database = {
+  public: {
+    Tables: {
+      passkey_accounts: {
+        Row: { id: string; user_id: string; username: string; credential_id: string; created_at: string }
+        Insert: { user_id: string; username: string; created_at: string; credential_id: string }
+        Update: Partial<{ user_id: string; username: string; created_at: string; credential_id: string }>
+        Relationships: []
+      }
+      tracked_wallets: {
+        Row: { id: string; user_id: string; credential_id?: string; wallet_id: string; label: string; address: `0x${string}`; created_at: string }
+        Insert: { user_id: string; wallet_id: string; label: string; address: `0x${string}`; credential_id?: string }
+        Update: Partial<{ user_id: string; wallet_id: string; label: string; address: `0x${string}`; credential_id?: string }>
+        Relationships: []
+      }
+      user_settings: {
+        Row: { id: string; user_id: string; credential_id?: string; chain_id?: number; chain_ids?: number[]; refresh_interval_ms: number; alchemy_api_key?: string; created_at: string }
+        Insert: { user_id: string; chain_ids: number[]; chain_id: number; refresh_interval_ms: number; alchemy_api_key: string; credential_id?: string }
+        Update: Partial<{ user_id: string; chain_ids: number[]; chain_id: number; refresh_interval_ms: number; alchemy_api_key: string; credential_id?: string }>
+        Relationships: []
+      }
+      user_profile: {
+        Row: { id: string; user_id: string; credential_id?: string; nickname: string; email: string; bio: string; avatar_data_url?: string; updated_at: string; created_at: string }
+        Insert: { user_id: string; nickname: string; email: string; bio: string; avatar_data_url?: string; updated_at: string; credential_id?: string }
+        Update: Partial<{ user_id: string; nickname: string; email: string; bio: string; avatar_data_url?: string; updated_at: string; credential_id?: string }>
+        Relationships: []
+      }
+    }
+    Views: Record<string, never>
+    Functions: Record<string, never>
+  }
+}
+
 const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)
   ?.replace(/(^"|"$)/g, '')
 const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as
@@ -33,18 +66,19 @@ function isSupabaseKeyMatchingProject() {
 }
 
 const globalSupabaseKey = '__factor_supabase__'
+export type SupabaseClient = ReturnType<typeof createClient<Database>>
 const existing = (globalThis as typeof globalThis & {
-  [globalSupabaseKey]?: ReturnType<typeof createClient> | null
+  [globalSupabaseKey]?: SupabaseClient | null
 })[globalSupabaseKey]
 
-export const supabase =
+export const supabase: SupabaseClient | null =
   existing ??
   (supabaseUrl && supabaseAnonKey && isSupabaseKeyMatchingProject()
-    ? createClient(supabaseUrl, supabaseAnonKey)
+    ? createClient<Database>(supabaseUrl, supabaseAnonKey)
     : null)
 
 ;(globalThis as typeof globalThis & {
-  [globalSupabaseKey]?: ReturnType<typeof createClient> | null
+  [globalSupabaseKey]?: SupabaseClient | null
 })[globalSupabaseKey] = supabase
 
 export const isSupabaseConfigured = Boolean(supabase)
@@ -217,7 +251,7 @@ export async function upsertPasskeyAccount(input: {
         username: input.username,
         created_at: input.createdAt,
         credential_id: input.credentialId,
-      },
+      } as Database['public']['Tables']['passkey_accounts']['Insert'],
       { onConflict: 'credential_id' },
     )
     .select()
@@ -319,7 +353,7 @@ export async function upsertTrackedWallet(input: {
   }
   let response = await supabase
     .from('tracked_wallets')
-    .upsert(payload, { onConflict: 'wallet_id' })
+    .upsert(payload as Database['public']['Tables']['tracked_wallets']['Insert'], { onConflict: 'wallet_id' })
     .select()
     .maybeSingle()
   if (response.error && input.credentialId) {
@@ -331,7 +365,7 @@ export async function upsertTrackedWallet(input: {
           wallet_id: input.walletId,
           label: input.label,
           address: input.address,
-        },
+        } as Database['public']['Tables']['tracked_wallets']['Insert'],
         { onConflict: 'wallet_id' },
       )
       .select()
@@ -396,7 +430,7 @@ export async function upsertUserSettings(input: {
   const conflictTarget = input.credentialId ? 'credential_id' : 'user_id'
   let response = await supabase
     .from('user_settings')
-    .upsert(payload, { onConflict: conflictTarget })
+    .upsert(payload as Database['public']['Tables']['user_settings']['Insert'], { onConflict: conflictTarget })
     .select()
     .maybeSingle()
   if (response.error && input.credentialId) {
@@ -408,7 +442,7 @@ export async function upsertUserSettings(input: {
           chain_id: input.chainIds[0],
           refresh_interval_ms: input.refreshIntervalMs,
           alchemy_api_key: input.alchemyApiKey,
-        },
+        } as Database['public']['Tables']['user_settings']['Insert'],
         { onConflict: 'user_id' },
       )
       .select()
@@ -446,7 +480,7 @@ export async function upsertUserProfile(input: {
   const conflictTarget = input.credentialId ? 'credential_id' : 'user_id'
   let response = await supabase
     .from('user_profile')
-    .upsert(payload, { onConflict: conflictTarget })
+    .upsert(payload as Database['public']['Tables']['user_profile']['Insert'], { onConflict: conflictTarget })
     .select()
     .maybeSingle()
   if (response.error && input.credentialId) {
@@ -460,7 +494,7 @@ export async function upsertUserProfile(input: {
           bio: input.bio,
           avatar_data_url: input.avatarDataUrl,
           updated_at: new Date().toISOString(),
-        },
+        } as Database['public']['Tables']['user_profile']['Insert'],
         { onConflict: 'user_id' },
       )
       .select()
