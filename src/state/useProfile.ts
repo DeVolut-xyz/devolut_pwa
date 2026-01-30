@@ -5,6 +5,7 @@ import {
   isSupabaseConfigured,
   upsertUserProfile,
 } from '../services/supabase'
+import { getStoredCredentialId } from './authStorage'
 
 const PROFILE_KEY = 'factor-user-profile'
 
@@ -44,7 +45,8 @@ export function useProfile() {
         return
       }
       try {
-        const remote = await fetchUserProfile()
+        const credentialId = getStoredCredentialId()
+        const remote = await fetchUserProfile({ credentialId: credentialId ?? undefined })
         if (!remote) {
           return
         }
@@ -84,11 +86,13 @@ export function useProfile() {
     setSaveStatus('saving')
     setSaveError(null)
     try {
+      const credentialId = getStoredCredentialId()
       await upsertUserProfile({
         nickname: profile.nickname,
         email: profile.email,
         bio: profile.bio,
         avatarDataUrl: profile.avatarDataUrl,
+        credentialId: credentialId ?? undefined,
       })
       setSaveStatus('success')
     } catch (error) {

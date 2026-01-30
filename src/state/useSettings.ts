@@ -6,6 +6,7 @@ import {
   isSupabaseConfigured,
   upsertUserSettings,
 } from '../services/supabase'
+import { getStoredCredentialId } from './authStorage'
 
 const SETTINGS_KEY = 'factor-settings'
 
@@ -57,7 +58,8 @@ export function useSettings() {
         return
       }
       try {
-        const remote = await fetchUserSettings()
+        const credentialId = getStoredCredentialId()
+        const remote = await fetchUserSettings({ credentialId: credentialId ?? undefined })
         if (!remote) {
           return
         }
@@ -119,10 +121,12 @@ export function useSettings() {
       alchemyApiKey: maskedKey || 'empty',
     })
     try {
+      const credentialId = getStoredCredentialId()
       await upsertUserSettings({
         chainIds: settings.chainIds,
         refreshIntervalMs: settings.refreshIntervalMs,
         alchemyApiKey: settings.alchemyApiKey,
+        credentialId: credentialId ?? undefined,
       })
       setSaveStatus('success')
       console.info('[settings] supabase save success')

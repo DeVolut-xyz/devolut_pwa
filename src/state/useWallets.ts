@@ -6,6 +6,7 @@ import {
   isSupabaseConfigured,
   upsertTrackedWallet,
 } from '../services/supabase'
+import { getStoredCredentialId } from './authStorage'
 
 export type TrackedWallet = {
   id: string
@@ -40,7 +41,10 @@ export function useWallets() {
     setSyncError(null)
     console.info('[supabase] wallet sync start')
     try {
-      const remote = await fetchTrackedWallets()
+      const credentialId = getStoredCredentialId()
+      const remote = await fetchTrackedWallets({
+        credentialId: credentialId ?? undefined,
+      })
       console.info('[supabase] wallet sync fetched', {
         count: remote.length,
       })
@@ -63,6 +67,7 @@ export function useWallets() {
               walletId: wallet.id,
               label: wallet.label,
               address: wallet.address,
+              credentialId: credentialId ?? undefined,
             }),
           ),
         )
@@ -92,10 +97,12 @@ export function useWallets() {
     console.info('[wallets] add', { id: next[next.length - 1].id })
     if (isSupabaseConfigured) {
       const created = next[next.length - 1]
+      const credentialId = getStoredCredentialId()
       void upsertTrackedWallet({
         walletId: created.id,
         label: created.label,
         address: created.address,
+        credentialId: credentialId ?? undefined,
       })
         .then(() => {
           console.info('[supabase] wallet upsert success', {
@@ -114,7 +121,8 @@ export function useWallets() {
     writeStorage(WALLETS_KEY, next)
     console.info('[wallets] remove', { id: walletId })
     if (isSupabaseConfigured) {
-      void deleteTrackedWallet(walletId)
+      const credentialId = getStoredCredentialId()
+      void deleteTrackedWallet(walletId, credentialId ?? undefined)
         .then(() => {
           console.info('[supabase] wallet delete success', { id: walletId })
         })

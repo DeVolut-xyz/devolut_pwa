@@ -1,13 +1,17 @@
 import { ChainId } from '@factordao/tokenlist'
 import { FactorVaultAnalytics } from '@factordao/vault-analytics'
 
-export type VaultDeposit = {
+/** Matches @factordao/vault-analytics VaultTokenMetadata for type compatibility */
+export type VaultTokenMetadata = {
+  balance: bigint
   balance_fmt: number
+  chainId: ChainId
+  type: 'unknown' | 'idle' | 'debt' | 'credit' | 'supply'
+  protocol: 'unknown' | 'aave' | 'compound' | 'pendle' | 'silo' | 'morpho' | 'reth'
   value_usd: number
+  reward_apy: number
   apy: number
   apr: number
-  type: 'idle' | 'debt' | 'credit' | 'supply' | 'unknown'
-  protocol: string
   metadata: {
     symbol: string
     name: string
@@ -17,7 +21,7 @@ export type VaultDeposit = {
   }
 }
 
-export type VaultDepositsWithMetadata = Record<string, VaultDeposit>
+export type VaultDepositsWithMetadata = Record<string, VaultTokenMetadata>
 
 export type VaultStats = {
   total_idle_usd: number

@@ -63,7 +63,7 @@ export type SupabasePasskeyAccount = {
   id: string
   user_id: string
   username: string
-  credential_id?: string
+  credential_id: string
   created_at: string
 }
 
@@ -151,38 +151,44 @@ export async function getSupabaseSession() {
   return data.session ?? null
 }
 
-export async function fetchUserSettings() {
+export async function fetchUserSettings(options?: { credentialId?: string }) {
   if (!supabase) {
     return null
   }
+  const credentialId = options?.credentialId
   const user = await ensureSupabaseUser()
   if (!user) {
     return null
   }
-  const { data, error } = await supabase
-    .from('user_settings')
-    .select('*')
-    .eq('user_id', user.id)
-    .maybeSingle()
+  let query = supabase.from('user_settings').select('*')
+  if (credentialId) {
+    query = query.eq('credential_id', credentialId)
+  } else {
+    query = query.eq('user_id', user.id)
+  }
+  const { data, error } = await query.maybeSingle()
   if (error) {
     throw error
   }
   return data as SupabaseUserSettings | null
 }
 
-export async function fetchUserProfile() {
+export async function fetchUserProfile(options?: { credentialId?: string }) {
   if (!supabase) {
     return null
   }
+  const credentialId = options?.credentialId
   const user = await ensureSupabaseUser()
   if (!user) {
     return null
   }
-  const { data, error } = await supabase
-    .from('user_profile')
-    .select('*')
-    .eq('user_id', user.id)
-    .maybeSingle()
+  let query = supabase.from('user_profile').select('*')
+  if (credentialId) {
+    query = query.eq('credential_id', credentialId)
+  } else {
+    query = query.eq('user_id', user.id)
+  }
+  const { data, error } = await query.maybeSingle()
   if (error) {
     throw error
   }
@@ -194,7 +200,7 @@ export async function fetchUserProfile() {
 export async function upsertPasskeyAccount(input: {
   username: string
   createdAt: string
-  credentialId?: string
+  credentialId: string
 }) {
   if (!supabase) {
     return null
@@ -210,9 +216,9 @@ export async function upsertPasskeyAccount(input: {
         user_id: user.id,
         username: input.username,
         created_at: input.createdAt,
-        ...(input.credentialId ? { credential_id: input.credentialId } : {}),
+        credential_id: input.credentialId,
       },
-      { onConflict: 'user_id' },
+      { onConflict: 'credential_id' },
     )
     .select()
     .maybeSingle()
@@ -234,6 +240,24 @@ export async function fetchPasskeyAccountForUser(): Promise<SupabasePasskeyAccou
     .from('passkey_accounts')
     .select('*')
     .eq('user_id', user.id)
+    .maybeSingle()
+  if (error) {
+    throw error
+  }
+  return data as SupabasePasskeyAccount | null
+}
+
+export async function fetchPasskeyAccountByCredentialId(
+  credentialId: string,
+): Promise<SupabasePasskeyAccount | null> {
+  if (!supabase) {
+    return null
+  }
+  await ensureSupabaseUser()
+  const { data, error } = await supabase
+    .from('passkey_accounts')
+    .select('*')
+    .eq('credential_id', credentialId)
     .maybeSingle()
   if (error) {
     throw error
@@ -369,9 +393,10 @@ export async function upsertUserSettings(input: {
     alchemy_api_key: input.alchemyApiKey,
     ...(input.credentialId ? { credential_id: input.credentialId } : {}),
   }
+  const conflictTarget = input.credentialId ? 'credential_id' : 'user_id'
   let response = await supabase
     .from('user_settings')
-    .upsert(payload, { onConflict: 'user_id' })
+    .upsert(payload, { onConflict: conflictTarget })
     .select()
     .maybeSingle()
   if (response.error && input.credentialId) {
@@ -418,9 +443,10 @@ export async function upsertUserProfile(input: {
     updated_at: new Date().toISOString(),
     ...(input.credentialId ? { credential_id: input.credentialId } : {}),
   }
+  const conflictTarget = input.credentialId ? 'credential_id' : 'user_id'
   let response = await supabase
     .from('user_profile')
-    .upsert(payload, { onConflict: 'user_id' })
+    .upsert(payload, { onConflict: conflictTarget })
     .select()
     .maybeSingle()
   if (response.error && input.credentialId) {
