@@ -17,7 +17,7 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },
       manifest: {
-        name: 'Factor APY Screener',
+        name: 'Wallet APYScreener',
         short_name: 'Factor APY',
         description: 'Liquid glass PWA for wallet APY exposure.',
         theme_color: '#0b0f1a',

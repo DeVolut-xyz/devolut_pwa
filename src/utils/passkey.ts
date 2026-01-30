@@ -63,7 +63,7 @@ export async function registerPasskey(username: string) {
   const rpId = getRpId()
   console.info('[passkey] register rpId', rpId)
   const publicKey: PublicKeyCredentialCreationOptions = {
-    rp: { name: 'Factor APY Screener', id: rpId },
+    rp: { name: 'Wallet APYScreener', id: rpId },
     user: {
       id: randomBytes(16),
       name: username,
