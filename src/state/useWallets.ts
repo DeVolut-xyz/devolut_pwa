@@ -3,7 +3,6 @@ import { readStorage, subscribeStorage, writeStorage } from './storage'
 import {
   deleteTrackedWallet,
   fetchTrackedWallets,
-  getSupabaseAuthStatus,
   isSupabaseConfigured,
   upsertTrackedWallet,
 } from '../services/supabase'
@@ -37,12 +36,6 @@ export function useWallets() {
     if (!isSupabaseConfigured) {
       return
     }
-    const authStatus = getSupabaseAuthStatus()
-    if (authStatus.error?.includes('No Supabase session')) {
-      setSyncStatus('error')
-      setSyncError(authStatus.error ?? 'Supabase auth required')
-      return
-    }
     setSyncStatus('syncing')
     setSyncError(null)
     console.info('[supabase] wallet sync start')
@@ -50,7 +43,6 @@ export function useWallets() {
       const remote = await fetchTrackedWallets()
       console.info('[supabase] wallet sync fetched', {
         count: remote.length,
-        usingCredential: Boolean(getCredentialId()),
       })
       if (remote.length > 0) {
         const mapped = remote.map((wallet) => ({

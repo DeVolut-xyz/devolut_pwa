@@ -2,7 +2,6 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
-import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -34,10 +33,6 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@factordao/vault-analytics': path.resolve(
-        __dirname,
-        '../apy-screaning/src/index.ts',
-      ),
       buffer: 'buffer',
     },
   },
@@ -47,10 +42,5 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['buffer'],
-  },
-  server: {
-    fs: {
-      allow: [path.resolve(__dirname, '..')],
-    },
   },
 })

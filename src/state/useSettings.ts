@@ -3,7 +3,6 @@ import { ChainId } from '@factordao/tokenlist'
 import { readStorage, subscribeStorage, writeStorage } from './storage'
 import {
   fetchUserSettings,
-  getSupabaseSession,
   isSupabaseConfigured,
   upsertUserSettings,
 } from '../services/supabase'
@@ -55,10 +54,6 @@ export function useSettings() {
   useEffect(() => {
     const loadFromSupabase = async () => {
       if (!isSupabaseConfigured) {
-        return
-      }
-      const session = await getSupabaseSession()
-      if (!session) {
         return
       }
       try {

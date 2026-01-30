@@ -32,10 +32,20 @@ function isSupabaseKeyMatchingProject() {
   return payload?.ref === ref
 }
 
+const globalSupabaseKey = '__factor_supabase__'
+const existing = (globalThis as typeof globalThis & {
+  [globalSupabaseKey]?: ReturnType<typeof createClient> | null
+})[globalSupabaseKey]
+
 export const supabase =
-  supabaseUrl && supabaseAnonKey && isSupabaseKeyMatchingProject()
+  existing ??
+  (supabaseUrl && supabaseAnonKey && isSupabaseKeyMatchingProject()
     ? createClient(supabaseUrl, supabaseAnonKey)
-    : null
+    : null)
+
+;(globalThis as typeof globalThis & {
+  [globalSupabaseKey]?: ReturnType<typeof createClient> | null
+})[globalSupabaseKey] = supabase
 
 export const isSupabaseConfigured = Boolean(supabase)
 export const isSupabaseKeyValid = isSupabaseKeyMatchingProject()
@@ -105,8 +115,14 @@ export async function ensureSupabaseUser() {
   }
   const { data, error } = await supabase.auth.signInAnonymously()
   if (error) {
+    const status = (error as { status?: number }).status
     const message = error.message || 'Supabase auth error'
-    supabaseAuthError = message
+    if (status === 422) {
+      supabaseAuthError =
+        'Anonymous sign-in blocked. Disable Captcha or enable Anonymous in Supabase Auth.'
+    } else {
+      supabaseAuthError = message
+    }
     if (message.toLowerCase().includes('anonymous sign-ins are disabled')) {
       supabaseAuthDisabled = true
     }
@@ -173,53 +189,12 @@ export async function fetchUserProfile() {
   return data as SupabaseUserProfile | null
 }
 
-export async function registerSupabasePasskey(friendlyName: string) {
-  if (!supabase) {
-    return null
-  }
-  await ensureSupabaseUser()
-  const { data, error } = await supabase.auth.mfa.webauthn.register({
-    friendlyName,
-  })
-  if (error) {
-    supabaseAuthError = error.message
-    throw error
-  }
-  return data
-}
-
-export async function authenticateSupabasePasskey() {
-  if (!supabase) {
-    return null
-  }
-  await ensureSupabaseUser()
-  const { data: factors, error: factorsError } =
-    await supabase.auth.mfa.listFactors()
-  if (factorsError) {
-    supabaseAuthError = factorsError.message
-    throw factorsError
-  }
-  const webauthnFactor =
-    factors?.all?.find(
-      (factor) =>
-        factor.factor_type === 'webauthn' && factor.status === 'verified',
-    ) ?? null
-  if (!webauthnFactor) {
-    throw new Error('No verified passkey factor found.')
-  }
-  const { data, error } = await supabase.auth.mfa.webauthn.authenticate({
-    factorId: webauthnFactor.id,
-  })
-  if (error) {
-    supabaseAuthError = error.message
-    throw error
-  }
-  return data
-}
+// Supabase MFA WebAuthn is intentionally disabled in the client.
 
 export async function upsertPasskeyAccount(input: {
   username: string
   createdAt: string
+  credentialId?: string
 }) {
   if (!supabase) {
     return null
@@ -235,6 +210,7 @@ export async function upsertPasskeyAccount(input: {
         user_id: user.id,
         username: input.username,
         created_at: input.createdAt,
+        ...(input.credentialId ? { credential_id: input.credentialId } : {}),
       },
       { onConflict: 'user_id' },
     )

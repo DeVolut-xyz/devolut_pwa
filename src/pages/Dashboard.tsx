@@ -12,7 +12,6 @@ import {
   isSupabaseConfigured,
   isSupabaseKeyValid,
   getSupabaseSession,
-  registerSupabasePasskey,
   signOutSupabase,
 } from '../services/supabase'
 import { copyToClipboard, shortenAddress } from '../utils/format'
@@ -385,13 +384,6 @@ export function DashboardPage() {
                   <div className="notice">
                     Session: {supabaseSessionActive ? 'active' : 'inactive'}
                   </div>
-                  <LiquidButton
-                    variant="secondary"
-                    onClick={() => registerSupabasePasskey('Factor Passkey')}
-                    disabled={!supabaseSessionActive}
-                  >
-                    Register Supabase passkey
-                  </LiquidButton>
                 </div>
               </div>
             )}

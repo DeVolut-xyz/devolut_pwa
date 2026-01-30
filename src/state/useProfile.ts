@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { readStorage, subscribeStorage, writeStorage } from './storage'
 import {
   fetchUserProfile,
-  getSupabaseSession,
   isSupabaseConfigured,
   upsertUserProfile,
 } from '../services/supabase'
@@ -42,10 +41,6 @@ export function useProfile() {
   useEffect(() => {
     const loadFromSupabase = async () => {
       if (!isSupabaseConfigured) {
-        return
-      }
-      const session = await getSupabaseSession()
-      if (!session) {
         return
       }
       try {

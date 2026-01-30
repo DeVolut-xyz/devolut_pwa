@@ -43,6 +43,9 @@ export function LoginPage() {
           Supabase sync is {isSupabaseConfigured ? 'enabled' : 'disabled'}.
           {!isSupabaseKeyValid && ' Check URL + anon key match.'}
         </p>
+        <p className="notice">
+          Passkeys are stored locally on this device. Supabase is used only for syncing data.
+        </p>
         {!isSecureContext && (
           <p className="notice">
             Passkeys require HTTPS or localhost. Open the app on
