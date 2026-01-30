@@ -1,6 +1,7 @@
-import { Save } from 'lucide-react'
+import { Save, LogOut } from 'lucide-react'
 import { LiquidButton, LiquidCard, LiquidInput } from '../ui/liquid'
 import { useProfile } from '../state/useProfile'
+import { isSupabaseConfigured, signOutSupabase } from '../services/supabase'
 
 export function ProfilePage() {
   const {
@@ -46,6 +47,16 @@ export function ProfilePage() {
                 <Save className="chip-icon" size={14} strokeWidth={1.8} />
                 Save profile
               </LiquidButton>
+              {isSupabaseConfigured && (
+                <LiquidButton
+                  variant="secondary"
+                  className="header-chip"
+                  onClick={signOutSupabase}
+                >
+                  <LogOut className="chip-icon" size={14} strokeWidth={1.8} />
+                  Sign out
+                </LiquidButton>
+              )}
             </div>
           </div>
           <div className="glass-grid two" style={{ marginTop: 12 }}>
