@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSettings } from '../state/useSettings'
 import { useWallets } from '../state/useWallets'
@@ -9,7 +9,7 @@ import {
   isSupabaseKeyValid,
 } from '../services/supabase'
 import { formatCurrency, formatPercent, sumWalletValue } from '../services/portfolio'
-import { getTokenLogo } from '../data/tokenLogos'
+import { useTokenLogos } from '../data/tokenLogos'
 import { LiquidButton, LiquidCard } from '../ui/liquid'
 import { copyToClipboard, shortenAddress } from '../utils/format'
 import { Activity, Copy, Database, RefreshCw, Wallet } from 'lucide-react'
@@ -28,12 +28,14 @@ export function HomePage() {
   const { wallets, syncFromSupabase, syncStatus, syncError } = useWallets()
   const supabaseConfigured = isSupabaseConfigured
   const supabaseAuthStatus = getSupabaseAuthStatus()
+  const { getLogo } = useTokenLogos()
   const { data, loading, error, refresh } = usePortfolioData({
     wallets,
     chainIds: settings.chainIds,
     alchemyApiKey: settings.alchemyApiKey,
     refreshIntervalMs: settings.refreshIntervalMs,
   })
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
 
   const totals = useMemo(() => {
     let totalValue = 0
@@ -76,6 +78,21 @@ export function HomePage() {
       .slice(0, 6)
   }, [data])
 
+  const protocolExposures = useMemo(() => {
+    const totals = new Map<string, number>()
+    Object.values(data).forEach((portfolio) => {
+      Object.values(portfolio.deposits).forEach((deposit) => {
+        const key = deposit.protocol?.toUpperCase() ?? 'UNKNOWN'
+        totals.set(key, (totals.get(key) ?? 0) + deposit.value_usd)
+      })
+    })
+    return Array.from(totals.entries())
+      .map(([protocol, value]) => ({ protocol, value }))
+      .filter((entry) => entry.value > 0)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 6)
+  }, [data])
+
   const statusTone = (status: 'idle' | 'syncing' | 'error' | 'success') => {
     switch (status) {
       case 'success':
@@ -103,6 +120,24 @@ export function HomePage() {
         : supabaseAuthStatus.error
           ? `Supabase auth error: ${supabaseAuthStatus.error}`
           : null
+
+  const annualRevenue = totals.totalValue * (totals.netApy / 100)
+  const monthlyRevenue = annualRevenue / 12
+
+  useEffect(() => {
+    if (loading) {
+      return
+    }
+    if (wallets.length === 0) {
+      setHasLoadedOnce(true)
+      return
+    }
+    if (Object.keys(data).length > 0) {
+      setHasLoadedOnce(true)
+    }
+  }, [loading, data, wallets.length])
+
+  const showSkeleton = loading && !hasLoadedOnce
 
   return (
     <div className="glass-grid" style={{ gap: 24 }}>
@@ -145,35 +180,88 @@ export function HomePage() {
           <div className="glass-grid two" style={{ marginTop: 16 }}>
             <LiquidCard variant="dark">
               <div className="wallet-meta">Total Portfolio Value</div>
-              <div className="wallet-balance">{formatCurrency(totals.totalValue)}</div>
-              <div className="wallet-meta">
-                Net APY {formatPercent(totals.netApy)} •{' '}
-                {totals.updatedAt
-                  ? `Updated ${new Date(totals.updatedAt).toLocaleTimeString()}`
-                  : 'No data yet'}
-              </div>
+              {showSkeleton ? (
+                <div className="skeleton-block">
+                  <div className="skeleton-line wide" />
+                  <div className="skeleton-line" />
+                </div>
+              ) : (
+                <>
+                  <div className="wallet-balance">
+                    {formatCurrency(totals.totalValue)}
+                  </div>
+                  <div className="wallet-meta">
+                    Net APY {formatPercent(totals.netApy)} •{' '}
+                    {totals.updatedAt
+                      ? `Updated ${new Date(totals.updatedAt).toLocaleTimeString()}`
+                      : 'No data yet'}
+                  </div>
+                  <div className="wallet-meta">
+                    Annual {formatCurrency(annualRevenue)} • Monthly{' '}
+                    {formatCurrency(monthlyRevenue)}
+                  </div>
+                </>
+              )}
             </LiquidCard>
             <LiquidCard variant="dark">
-              <div className="wallet-meta">Top exposures</div>
-              <div className="chip-row" style={{ marginTop: 10 }}>
-                {topPositions.length === 0 && (
-                  <span className="notice">No positions yet.</span>
-                )}
-                {topPositions.map((position) => (
-                  <span
-                    key={`${position.sourceWallet}-${position.address}`}
-                    className="glass-chip"
-                  >
-                    {getTokenLogo(position.metadata.symbol) && (
-                      <img
-                        src={getTokenLogo(position.metadata.symbol)}
-                        alt={position.metadata.symbol}
-                      />
-                    )}
-                    {position.metadata.symbol} · {formatCurrency(position.value_usd)}
-                  </span>
-                ))}
-              </div>
+              <div className="wallet-meta">Token exposures</div>
+              {showSkeleton ? (
+                <div className="skeleton-chip-row" style={{ marginTop: 10 }}>
+                  <span className="skeleton-pill" />
+                  <span className="skeleton-pill" />
+                  <span className="skeleton-pill" />
+                  <span className="skeleton-pill" />
+                </div>
+              ) : (
+                <div className="chip-row" style={{ marginTop: 10 }}>
+                  {topPositions.length === 0 && (
+                    <span className="notice">No positions yet.</span>
+                  )}
+                  {topPositions.map((position) => {
+                    const logoUrl = getLogo(position.address)
+                    return (
+                      <span
+                        key={`${position.sourceWallet}-${position.address}`}
+                        className="glass-chip"
+                      >
+                        {logoUrl && (
+                          <img src={logoUrl} alt={position.metadata.symbol} />
+                        )}
+                        {position.metadata.symbol} · {formatCurrency(position.value_usd)}
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
+            </LiquidCard>
+          </div>
+          <div className="glass-grid two" style={{ marginTop: 16 }}>
+            <LiquidCard variant="dark">
+              <div className="wallet-meta">Protocol exposures</div>
+              {showSkeleton ? (
+                <div className="skeleton-chip-row" style={{ marginTop: 10 }}>
+                  <span className="skeleton-pill" />
+                  <span className="skeleton-pill" />
+                  <span className="skeleton-pill" />
+                </div>
+              ) : (
+                <div className="chip-row" style={{ marginTop: 10 }}>
+                  {protocolExposures.length === 0 && (
+                    <span className="notice">No protocol exposure yet.</span>
+                  )}
+                  {protocolExposures.map((entry) => (
+                    <span
+                      key={entry.protocol}
+                      className="glass-chip protocol-chip"
+                    >
+                      <span className="protocol-logo">
+                        {entry.protocol.slice(0, 1)}
+                      </span>
+                      {entry.protocol.toLowerCase()} · {formatCurrency(entry.value)}
+                    </span>
+                  ))}
+                </div>
+              )}
             </LiquidCard>
           </div>
           {error && (

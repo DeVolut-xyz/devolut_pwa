@@ -4,7 +4,7 @@ import { useSettings } from '../state/useSettings'
 import { useWallets } from '../state/useWallets'
 import { usePortfolioData } from '../hooks/usePortfolioData'
 import { formatCurrency, formatPercent, sumWalletValue } from '../services/portfolio'
-import { getTokenLogo } from '../data/tokenLogos'
+import { useTokenLogos } from '../data/tokenLogos'
 import { LiquidButton, LiquidCard } from '../ui/liquid'
 import { copyToClipboard, shortenAddress } from '../utils/format'
 import { Activity, Copy, RefreshCw } from 'lucide-react'
@@ -13,6 +13,7 @@ export function WalletDetailPage() {
   const params = useParams()
   const { settings } = useSettings()
   const { wallets } = useWallets()
+  const { getLogo } = useTokenLogos()
   const wallet = wallets.find(
     (entry) => entry.address.toLowerCase() === params.address?.toLowerCase(),
   )
@@ -146,18 +147,18 @@ export function WalletDetailPage() {
               No positions yet. Add an Alchemy key and refresh.
             </p>
           )}
-          {tokens.map((token) => (
-            <div
-              key={`${token.chainId ?? 'unknown'}-${token.metadata.address}`}
-              className="token-row"
-            >
-              <div className="token-cell">
-                {getTokenLogo(token.metadata.symbol) && (
-                  <img
-                    src={getTokenLogo(token.metadata.symbol)}
-                    alt={token.metadata.symbol}
-                  />
-                )}
+          {tokens.map((token) => {
+            const tokenKey = token.chainId
+              ? `${token.chainId}:${token.metadata.address}`
+              : token.metadata.address
+            const logoUrl = getLogo(tokenKey)
+            return (
+              <div
+                key={`${token.chainId ?? 'unknown'}-${token.metadata.address}`}
+                className="token-row"
+              >
+                <div className="token-cell">
+                  {logoUrl && <img src={logoUrl} alt={token.metadata.symbol} />}
                 <div>
                   <strong>{token.metadata.symbol}</strong>
                   <div className="wallet-meta">{token.metadata.name}</div>
@@ -167,7 +168,8 @@ export function WalletDetailPage() {
               <div>{formatPercent(token.apy)}</div>
               <div className="wallet-meta">{token.protocol}</div>
             </div>
-          ))}
+            )
+          })}
           </LiquidCard>
         </LiquidCard>
       </section>

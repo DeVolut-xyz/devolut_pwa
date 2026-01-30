@@ -21,6 +21,8 @@ export function usePortfolioData({
   const refreshInFlight = useRef(false)
   const lastRefreshAt = useRef(0)
   const minRefreshIntervalMs = 15000
+  const batchSize = 2
+  const batchDelayMs = 500
 
   const addressList = useMemo(
     () => wallets.map((wallet) => wallet.address),
@@ -56,11 +58,21 @@ export function usePortfolioData({
     setLoading(true)
     setError(null)
     try {
-      const results = await Promise.allSettled(
-        addressList.map((address) =>
-          fetchWalletPortfolio({ address, chainIds, alchemyApiKey }),
-        ),
-      )
+      const results: PromiseSettledResult<WalletPortfolio>[] = []
+      for (let i = 0; i < addressList.length; i += batchSize) {
+        const batch = addressList.slice(i, i + batchSize)
+        const batchResults = await Promise.allSettled(
+          batch.map((address) =>
+            fetchWalletPortfolio({ address, chainIds, alchemyApiKey }),
+          ),
+        )
+        results.push(...batchResults)
+        if (i + batchSize < addressList.length) {
+          await new Promise((resolve) => {
+            window.setTimeout(resolve, batchDelayMs)
+          })
+        }
+      }
       const mapped: Record<string, WalletPortfolio> = {}
       let failures = 0
       results.forEach((result) => {

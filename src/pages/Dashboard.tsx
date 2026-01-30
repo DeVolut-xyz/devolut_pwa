@@ -5,7 +5,7 @@ import { useSettings } from '../state/useSettings'
 import { useWallets } from '../state/useWallets'
 import { usePortfolioData } from '../hooks/usePortfolioData'
 import { formatCurrency, formatPercent, sumWalletValue } from '../services/portfolio'
-import { getTokenLogo } from '../data/tokenLogos'
+import { useTokenLogos } from '../data/tokenLogos'
 import { LiquidButton, LiquidCard, LiquidInput } from '../ui/liquid'
 import {
   getSupabaseAuthStatus,
@@ -48,6 +48,7 @@ export function DashboardPage() {
   const [label, setLabel] = useState('')
   const [address, setAddress] = useState('')
   const isAddressValid = /^0x[a-fA-F0-9]{40}$/.test(address.trim())
+  const { getLogo } = useTokenLogos()
   const supabaseAuthStatus = getSupabaseAuthStatus()
   const [supabaseSessionActive, setSupabaseSessionActive] = useState(false)
 
@@ -171,20 +172,20 @@ export function DashboardPage() {
               {topPositions.length === 0 && (
                 <span className="notice">No positions yet.</span>
               )}
-              {topPositions.map((position) => (
-                <span
-                  key={`${position.sourceWallet}-${position.address}`}
-                  className="glass-chip"
-                >
-                  {getTokenLogo(position.metadata.symbol) && (
-                    <img
-                      src={getTokenLogo(position.metadata.symbol)}
-                      alt={position.metadata.symbol}
-                    />
-                  )}
-                  {position.metadata.symbol} · {formatCurrency(position.value_usd)}
-                </span>
-              ))}
+              {topPositions.map((position) => {
+                const logoUrl = getLogo(position.address)
+                return (
+                  <span
+                    key={`${position.sourceWallet}-${position.address}`}
+                    className="glass-chip"
+                  >
+                    {logoUrl && (
+                      <img src={logoUrl} alt={position.metadata.symbol} />
+                    )}
+                    {position.metadata.symbol} · {formatCurrency(position.value_usd)}
+                  </span>
+                )
+              })}
             </div>
             </LiquidCard>
           </div>
