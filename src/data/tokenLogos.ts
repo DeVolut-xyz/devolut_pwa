@@ -19,7 +19,7 @@ const tokenLogos: Record<string, string> = {
 }
 
 type TokenListEntry = {
-  symbol: string
+  symbol?: string
   logoUrl?: string
   logoURI?: string
   address?: string
@@ -48,14 +48,20 @@ async function loadTokenLogos() {
     chainIds.forEach((chainId) => {
       try {
         const tokenlist = new FactorTokenlist(chainId)
-        const tokens: TokenListEntry[] = [
+        const rawTokens = ([
           ...(tokenlist.getAllGeneralTokens?.() ?? []),
           ...(tokenlist.getAllPendleTokens?.() ?? []),
           ...(tokenlist.getAllAaveTokens?.() ?? []),
           ...(tokenlist.getAllCompoundTokens?.() ?? []),
           ...(tokenlist.getAllSiloTokens?.() ?? []),
           ...(tokenlist.getAllMorphoTokens?.() ?? []),
-        ]
+        ] as unknown) as Array<Record<string, unknown>>
+        const tokens: TokenListEntry[] = rawTokens.map((token) => ({
+          symbol: token.symbol as string | undefined,
+          address: token.address as string | undefined,
+          logoUrl: token.logoUrl as string | undefined,
+          logoURI: token.logoURI as string | undefined,
+        }))
         console.info('[tokenLogos] loaded token list', {
           chainId,
           count: tokens.length,
