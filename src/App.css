@@ -4,6 +4,7 @@
 
 body {
   -webkit-text-size-adjust: 100%;
+  padding-top: env(safe-area-inset-top);
 }
 
 .glass-shell {
@@ -11,7 +12,7 @@ body {
   min-height: 100vh;
   flex-direction: column;
   gap: 24px;
-  padding: 28px clamp(20px, 4vw, 56px) 48px;
+  padding: calc(28px + env(safe-area-inset-top)) clamp(20px, 4vw, 56px) 48px;
 }
 
 .app-shell {
@@ -410,6 +411,314 @@ body {
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
+}
+
+.balance-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.balance-sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.balance-sheet-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: rgba(235, 237, 255, 0.95);
+}
+
+.balance-sheet-vmf {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.balance-sheet-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(230, 240, 255, 0.75);
+}
+
+.balance-sheet-amount {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.balance-sheet-link {
+  font-size: 0.8rem;
+  color: rgba(121, 215, 255, 0.9);
+  text-decoration: none;
+}
+
+.balance-sheet-label {
+  font-size: 0.75rem;
+  color: rgba(210, 216, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.balance-sheet-assets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.balance-sheet-other {
+  font-size: 0.75rem;
+  color: rgba(210, 216, 255, 0.6);
+}
+
+.asset-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  min-width: fit-content;
+}
+
+.asset-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.asset-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(121, 215, 255, 0.2);
+  color: rgba(235, 237, 255, 0.95);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
+.asset-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.asset-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.asset-symbol {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.asset-protocol {
+  font-size: 0.65rem;
+  color: rgba(210, 216, 255, 0.6);
+}
+
+.asset-amount {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(210, 216, 255, 0.8);
+}
+
+.asset-divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.asset-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 0.7rem;
+  line-height: 1.2;
+}
+
+.asset-percent {
+  font-weight: 600;
+  color: rgba(235, 237, 255, 0.9);
+}
+
+.asset-value {
+  color: rgba(210, 216, 255, 0.65);
+}
+
+.credit-debt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.credit-card,
+.debt-card {
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.credit-card {
+  background: rgba(92, 220, 167, 0.12);
+  border-color: rgba(92, 220, 167, 0.35);
+}
+
+.debt-card {
+  background: rgba(255, 110, 110, 0.12);
+  border-color: rgba(255, 110, 110, 0.35);
+}
+
+.credit-header,
+.debt-header,
+.credit-row,
+.debt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(210, 216, 255, 0.7);
+}
+
+.credit-header strong,
+.credit-row strong {
+  font-size: 0.95rem;
+  letter-spacing: 0;
+  color: rgba(210, 255, 235, 0.95);
+}
+
+.debt-header strong,
+.debt-row strong {
+  font-size: 0.95rem;
+  letter-spacing: 0;
+  color: rgba(255, 220, 220, 0.95);
+}
+
+.exposure-title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(210, 216, 255, 0.6);
+}
+
+.exposure-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.exposure-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.exposure-logo {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.exposure-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.exposure-chip.credit {
+  background: rgba(92, 220, 167, 0.18);
+  border-color: rgba(92, 220, 167, 0.4);
+  color: rgba(210, 255, 235, 0.95);
+}
+
+.exposure-chip.debt {
+  background: rgba(255, 110, 110, 0.18);
+  border-color: rgba(255, 110, 110, 0.4);
+  color: rgba(255, 220, 220, 0.95);
+}
+
+.exposure-label {
+  font-weight: 600;
+}
+
+.exposure-value {
+  font-size: 0.7rem;
+  opacity: 0.9;
+}
+
+.funds-health-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.metric-card {
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.metric-title {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(210, 216, 255, 0.6);
+}
+
+.metric-value {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(230, 240, 255, 0.95);
+}
+
+.metric-safe {
+  color: rgba(92, 220, 167, 0.95);
+}
+
+.metric-warning {
+  color: rgba(255, 195, 105, 0.95);
+}
+
+.metric-danger {
+  color: rgba(255, 110, 110, 0.95);
 }
 
 .status-pill {

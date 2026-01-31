@@ -2,14 +2,10 @@ import { useState } from 'react'
 import { ChainId } from '@factordao/tokenlist'
 import { useSettings } from '../state/useSettings'
 import { useWallets } from '../state/useWallets'
-import {
-  getSupabaseAuthStatus,
-  isSupabaseConfigured,
-  isSupabaseKeyValid,
-} from '../services/supabase'
+import { getSupabaseAuthStatus, isSupabaseConfigured } from '../services/supabase'
 import { LiquidButton, LiquidCard, LiquidInput } from '../ui/liquid'
 import { copyToClipboard, shortenAddress } from '../utils/format'
-import { Copy, Database, RefreshCw, Save, Wallet } from 'lucide-react'
+import { Copy, RefreshCw, Save, Wallet } from 'lucide-react'
 
 const chainOptions = [
   { label: 'Ethereum', value: ChainId.ETHEREUM },
@@ -20,9 +16,8 @@ const chainOptions = [
 ]
 
 export function SettingsPage() {
-  const { settings, updateSettings, saveToSupabase, saveStatus, saveError } =
-    useSettings()
-  const { wallets, addWallet, removeWallet, syncFromSupabase, syncStatus, syncError } =
+  const { settings, updateSettings, saveToSupabase, saveError } = useSettings()
+  const { wallets, addWallet, removeWallet, syncFromSupabase, syncError } =
     useWallets()
   const supabaseConfigured = isSupabaseConfigured
   const supabaseAuthStatus = getSupabaseAuthStatus()
@@ -50,34 +45,17 @@ export function SettingsPage() {
     setAddress('')
   }
 
-  const statusTone = (status: 'idle' | 'syncing' | 'error' | 'success' | 'saving') => {
-    switch (status) {
-      case 'success':
-        return 'chip-success'
-      case 'error':
-        return 'chip-error'
-      case 'syncing':
-      case 'saving':
-        return 'chip-info'
-      default:
-        return 'chip-warn'
-    }
-  }
-
-  const supabaseIssue =
+  const syncIssue =
     !supabaseConfigured ||
-    !isSupabaseKeyValid ||
     supabaseAuthStatus.disabled ||
     Boolean(supabaseAuthStatus.error)
-  const supabaseMessage = !supabaseConfigured
-    ? 'Supabase not configured.'
-    : !isSupabaseKeyValid
-      ? 'Supabase key mismatch.'
-      : supabaseAuthStatus.disabled
-        ? 'Anonymous sign-in disabled.'
-        : supabaseAuthStatus.error
-          ? `Supabase auth error: ${supabaseAuthStatus.error}`
-          : null
+  const syncMessage = !supabaseConfigured
+    ? 'Cloud sync not configured.'
+    : supabaseAuthStatus.disabled
+      ? 'Anonymous sign-in disabled.'
+      : supabaseAuthStatus.error
+        ? `Sync auth error: ${supabaseAuthStatus.error}`
+        : null
 
   return (
     <div className="glass-grid" style={{ gap: 24 }}>
@@ -92,14 +70,6 @@ export function SettingsPage() {
                 <Wallet className="chip-icon" size={14} strokeWidth={1.8} />
                 {wallets.length} wallets
               </span>
-              <span
-                className={`status-pill header-chip ${
-                  supabaseConfigured ? statusTone(syncStatus) : 'chip-warn'
-                }`}
-              >
-                <Database className="chip-icon" size={14} strokeWidth={1.8} />
-                Supabase {supabaseConfigured ? syncStatus : 'offline'}
-              </span>
               <LiquidButton
                 variant="secondary"
                 className="header-chip"
@@ -107,7 +77,7 @@ export function SettingsPage() {
                 disabled={!supabaseConfigured}
               >
                 <RefreshCw className="chip-icon" size={14} strokeWidth={1.8} />
-                Sync now
+                Sync wallets
               </LiquidButton>
             </div>
           </div>
@@ -116,9 +86,9 @@ export function SettingsPage() {
               {syncError}
             </p>
           )}
-          {supabaseIssue && supabaseMessage && (
+          {syncIssue && syncMessage && (
             <p className="notice" style={{ marginTop: 8 }}>
-              {supabaseMessage}
+              {syncMessage}
             </p>
           )}
           <div className="glass-grid" style={{ gap: 12 }}>
@@ -187,14 +157,6 @@ export function SettingsPage() {
               </p>
             </div>
             <div className="toolbar">
-              <span
-                className={`status-pill header-chip ${
-                  supabaseConfigured ? statusTone(saveStatus) : 'chip-warn'
-                }`}
-              >
-                <Save className="chip-icon" size={14} strokeWidth={1.8} />
-                Save {supabaseConfigured ? saveStatus : 'offline'}
-              </span>
               <LiquidButton
                 variant="secondary"
                 className="header-chip"
@@ -202,7 +164,7 @@ export function SettingsPage() {
                 disabled={!supabaseConfigured}
               >
                 <Save className="chip-icon" size={14} strokeWidth={1.8} />
-                Save to Supabase
+                Save settings
               </LiquidButton>
             </div>
           </div>
@@ -237,24 +199,14 @@ export function SettingsPage() {
                 updateSettings({ alchemyApiKey: event.target.value })
               }
             />
-            <label className="notice">Refresh interval (ms)</label>
-            <LiquidInput
-              type="number"
-              value={settings.refreshIntervalMs}
-              onChange={(event) =>
-                updateSettings({
-                  refreshIntervalMs: Number(event.target.value) || 30000,
-                })
-              }
-            />
             {saveError && (
               <p className="notice" style={{ marginTop: 8 }}>
                 {saveError}
               </p>
             )}
-            {supabaseIssue && supabaseMessage && (
+            {syncIssue && syncMessage && (
               <p className="notice" style={{ marginTop: 8 }}>
-                {supabaseMessage}
+                {syncMessage}
               </p>
             )}
           </div>

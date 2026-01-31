@@ -19,7 +19,7 @@ export type AppSettings = {
 const defaultSettings: AppSettings = {
   chainIds: [ChainId.ETHEREUM],
   alchemyApiKey: '',
-  refreshIntervalMs: 30000,
+  refreshIntervalMs: 5 * 60 * 1000,
 }
 
 function normalizeSettings(input: AppSettings | Record<string, unknown>) {
@@ -71,7 +71,7 @@ export function useSettings() {
                 ? ([remote.chain_id] as ChainId[])
                 : defaultSettings.chainIds,
           alchemyApiKey: remote.alchemy_api_key ?? '',
-          refreshIntervalMs: remote.refresh_interval_ms ?? 30000,
+          refreshIntervalMs: remote.refresh_interval_ms ?? 5 * 60 * 1000,
         }
         setSettings(next)
         writeStorage<AppSettings>(SETTINGS_KEY, next)
@@ -132,9 +132,7 @@ export function useSettings() {
       console.info('[settings] supabase save success')
     } catch (error) {
       setSaveStatus('error')
-      setSaveError(
-        error instanceof Error ? error.message : 'Supabase save failed',
-      )
+      setSaveError(error instanceof Error ? error.message : 'Save failed')
       console.error('[settings] supabase save error', error)
     }
   }

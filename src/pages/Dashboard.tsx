@@ -4,13 +4,13 @@ import { ChainId } from '@factordao/tokenlist'
 import { useSettings } from '../state/useSettings'
 import { useWallets } from '../state/useWallets'
 import { usePortfolioData } from '../hooks/usePortfolioData'
+import { usePullToRefresh } from '../hooks/usePullToRefresh'
 import { formatCurrency, formatPercent, sumWalletValue } from '../services/portfolio'
 import { useTokenLogos } from '../data/tokenLogos'
 import { LiquidButton, LiquidCard, LiquidInput } from '../ui/liquid'
 import {
   getSupabaseAuthStatus,
   isSupabaseConfigured,
-  isSupabaseKeyValid,
   getSupabaseSession,
   signOutSupabase,
 } from '../services/supabase'
@@ -36,14 +36,12 @@ type TopPosition = {
 }
 
 export function DashboardPage() {
-  const { settings, updateSettings, saveToSupabase, saveStatus, saveError } =
-    useSettings()
-  const { wallets, addWallet, removeWallet, syncFromSupabase, syncStatus, syncError } = useWallets()
-  const { data, loading, error, refresh } = usePortfolioData({
+  const { settings, updateSettings, saveToSupabase, saveError } = useSettings()
+  const { wallets, addWallet, removeWallet, syncFromSupabase, syncError } = useWallets()
+  const { data, error, refresh } = usePortfolioData({
     wallets,
     chainIds: settings.chainIds,
     alchemyApiKey: settings.alchemyApiKey,
-    refreshIntervalMs: settings.refreshIntervalMs,
   })
   const [label, setLabel] = useState('')
   const [address, setAddress] = useState('')
@@ -56,6 +54,11 @@ export function DashboardPage() {
     void refreshSupabaseSession()
   }, [])
 
+  usePullToRefresh({
+    enabled: wallets.length > 0,
+    onRefresh: () => refresh(true),
+  })
+
   const refreshSupabaseSession = async () => {
     const session = await getSupabaseSession()
     setSupabaseSessionActive(Boolean(session))
@@ -64,7 +67,6 @@ export function DashboardPage() {
     profile,
     updateProfile,
     saveToSupabase: saveProfileToSupabase,
-    saveStatus: profileSaveStatus,
     saveError: profileSaveError,
   } = useProfile()
 
@@ -133,28 +135,6 @@ export function DashboardPage() {
     <div className="glass-grid" style={{ gap: 24 }}>
       <section>
         <LiquidCard>
-          <div className="glass-header">
-          <div>
-            <div className="glass-title">Portfolio Overview</div>
-            <div className="glass-subtitle">
-              Real-time wallet balances, exposures, and APY.
-            </div>
-          </div>
-          <div className="toolbar">
-            <span className="status-pill">
-              {loading ? 'Updating...' : 'Live'}
-            </span>
-            <span className="status-pill">
-              Supabase {isSupabaseConfigured ? 'connected' : 'offline'}
-            </span>
-            {!isSupabaseKeyValid && (
-              <span className="status-pill">Check Supabase keys</span>
-            )}
-            <LiquidButton variant="secondary" onClick={refresh}>
-              Refresh now
-            </LiquidButton>
-          </div>
-        </div>
           <div className="glass-grid two" style={{ marginTop: 16 }}>
             <LiquidCard variant="dark">
             <div className="wallet-meta">Total Portfolio Value</div>
@@ -173,7 +153,9 @@ export function DashboardPage() {
                 <span className="notice">No positions yet.</span>
               )}
               {topPositions.map((position) => {
-                const logoUrl = getLogo(position.address)
+                const logoUrl =
+                  getLogo(position.address) ??
+                  getLogo(position.metadata.symbol)
                 return (
                   <span
                     key={`${position.sourceWallet}-${position.address}`}
@@ -203,9 +185,6 @@ export function DashboardPage() {
               </p>
             </div>
             <div className="toolbar">
-              <span className="status-pill">
-                Supabase {isSupabaseConfigured ? syncStatus : 'offline'}
-              </span>
               {isSupabaseConfigured && (
                 <LiquidButton variant="secondary" onClick={syncFromSupabase}>
                   Sync now
@@ -333,36 +312,26 @@ export function DashboardPage() {
                 Add an Alchemy API key to enable real-time balances.
               </p>
             )}
-            <label className="notice">Refresh interval (ms)</label>
-            <LiquidInput
-              type="number"
-              min={10000}
-              value={settings.refreshIntervalMs}
-              onChange={(event) =>
-                updateSettings({ refreshIntervalMs: Number(event.target.value) })
-              }
-            />
             <p className="notice">
               API key is stored locally to enable real-time balance refresh.
             </p>
             <div className="toolbar" style={{ marginTop: 8 }}>
-              <span className="status-pill">Status {saveStatus}</span>
               <LiquidButton
                 variant="secondary"
                 onClick={saveToSupabase}
                 disabled={!isSupabaseConfigured || supabaseAuthStatus.disabled}
                 title={
                   isSupabaseConfigured
-                    ? 'Save settings to Supabase'
-                    : 'Supabase not configured'
+                    ? 'Save settings'
+                    : 'Cloud sync not configured'
                 }
               >
-                Save to Supabase
+                Save settings
               </LiquidButton>
             </div>
             {!isSupabaseConfigured && (
               <p className="notice" style={{ marginTop: 8 }}>
-                Supabase not configured. Add valid URL + anon key to enable save.
+                Cloud sync not configured. Add valid URL + anon key to enable save.
               </p>
             )}
             {supabaseAuthStatus.error && (
@@ -372,7 +341,7 @@ export function DashboardPage() {
             )}
             {isSupabaseConfigured && (
               <div className="glass-panel dark" style={{ marginTop: 12 }}>
-                <h4>Supabase session</h4>
+                <h4>Cloud session</h4>
                 <div className="glass-grid" style={{ gap: 10 }}>
                   <div className="toolbar">
                     <LiquidButton variant="secondary" onClick={refreshSupabaseSession}>
@@ -405,7 +374,6 @@ export function DashboardPage() {
               <p className="notice">Personalize your account details.</p>
             </div>
             <div className="toolbar">
-              <span className="status-pill">Save {profileSaveStatus}</span>
               <LiquidButton
                 variant="secondary"
                 onClick={saveProfileToSupabase}

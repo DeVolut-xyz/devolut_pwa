@@ -28,7 +28,7 @@ export function LoginPage() {
           Tap to login. Your device will prompt if a passkey is available.
         </p>
         <p className="notice">
-          Supabase sync is {isSupabaseConfigured ? 'enabled' : 'disabled'}.
+          Cloud sync is {isSupabaseConfigured ? 'enabled' : 'disabled'}.
           {!isSupabaseKeyValid && ' Check URL + anon key match.'}
         </p>
         {!isSecureContext && (

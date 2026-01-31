@@ -3,37 +3,35 @@ import { Link } from 'react-router-dom'
 import { useSettings } from '../state/useSettings'
 import { useWallets } from '../state/useWallets'
 import { usePortfolioData } from '../hooks/usePortfolioData'
-import {
-  getSupabaseAuthStatus,
-  isSupabaseConfigured,
-  isSupabaseKeyValid,
-} from '../services/supabase'
+import { usePullToRefresh } from '../hooks/usePullToRefresh'
+import { isSupabaseConfigured } from '../services/supabase'
 import { formatCurrency, formatPercent, sumWalletValue } from '../services/portfolio'
-import { useTokenLogos } from '../data/tokenLogos'
+import { buildTokenLogoKey, useTokenLogos } from '../data/tokenLogos'
+import { VaultBalanceSheet } from '../components/VaultBalanceSheet'
+import { VaultCreditDebt } from '../components/VaultCreditDebt'
+import { VaultFundsHealth } from '../components/VaultFundsHealth'
 import { LiquidButton, LiquidCard } from '../ui/liquid'
 import { copyToClipboard, shortenAddress } from '../utils/format'
-import { Activity, Copy, Database, RefreshCw, Wallet } from 'lucide-react'
+import { Copy, RefreshCw, Wallet } from 'lucide-react'
 
-type TopPosition = {
-  address: string
-  sourceWallet: string
-  value_usd: number
-  metadata: {
-    symbol: string
-  }
+type AggregatedAsset = {
+  key: string
+  symbol: string
+  amount: number
+  valueUsd: number
+  protocol?: string
+  logoUrl?: string
 }
 
 export function HomePage() {
   const { settings } = useSettings()
-  const { wallets, syncFromSupabase, syncStatus, syncError } = useWallets()
+  const { wallets, syncFromSupabase, syncError } = useWallets()
   const supabaseConfigured = isSupabaseConfigured
-  const supabaseAuthStatus = getSupabaseAuthStatus()
-  const { getLogo } = useTokenLogos()
+  const { getLogo, version: tokenLogoVersion } = useTokenLogos()
   const { data, loading, error, refresh } = usePortfolioData({
     wallets,
     chainIds: settings.chainIds,
     alchemyApiKey: settings.alchemyApiKey,
-    refreshIntervalMs: settings.refreshIntervalMs,
   })
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
 
@@ -61,65 +59,147 @@ export function HomePage() {
     }
   }, [data, wallets])
 
-  const topPositions = useMemo(() => {
-    const positions: TopPosition[] = []
+  const aggregated = useMemo(() => {
+    const assets = new Map<string, AggregatedAsset>()
+    const allTokens: Array<{
+      value_usd: number
+      apy: number
+      type: string
+      protocol: string
+    }> = []
     Object.values(data).forEach((portfolio) => {
-      Object.entries(portfolio.deposits).forEach(([tokenAddress, deposit]) => {
-        positions.push({
-          ...deposit,
-          address: tokenAddress,
-          sourceWallet: portfolio.address,
+      Object.entries(portfolio.deposits).forEach(([tokenKey, deposit]) => {
+        const normalizedKey = buildTokenLogoKey({
+          chainId: deposit.chainId,
+          address: deposit.metadata.address,
+          tokenKey,
         })
+        allTokens.push({
+          value_usd: deposit.value_usd,
+          apy: deposit.apy,
+          type: deposit.type,
+          protocol: deposit.protocol,
+        })
+        const logoUrl =
+          (normalizedKey ? getLogo(normalizedKey) : undefined) ??
+          getLogo(deposit.metadata.symbol)
+        if (!logoUrl && deposit.value_usd > 0) {
+          console.info('[tokenLogos] missing logo', {
+            normalizedKey,
+            tokenKey,
+            chainId: deposit.chainId,
+            address: deposit.metadata.address,
+            symbol: deposit.metadata.symbol,
+          })
+        }
+        const next = assets.get(tokenKey) ?? {
+          key: tokenKey,
+          symbol: deposit.metadata.symbol,
+          amount: 0,
+          valueUsd: 0,
+          protocol:
+            deposit.protocol && deposit.protocol !== 'unknown'
+              ? deposit.protocol
+              : undefined,
+          logoUrl,
+        }
+        next.amount += deposit.balance_fmt
+        next.valueUsd += deposit.value_usd
+        assets.set(tokenKey, next)
       })
     })
-    return positions
-      .filter((position) => position.value_usd > 0)
-      .sort((a, b) => b.value_usd - a.value_usd)
-      .slice(0, 6)
-  }, [data])
-
-  const protocolExposures = useMemo(() => {
-    const totals = new Map<string, number>()
-    Object.values(data).forEach((portfolio) => {
-      Object.values(portfolio.deposits).forEach((deposit) => {
-        const key = deposit.protocol?.toUpperCase() ?? 'UNKNOWN'
-        totals.set(key, (totals.get(key) ?? 0) + deposit.value_usd)
-      })
-    })
-    return Array.from(totals.entries())
-      .map(([protocol, value]) => ({ protocol, value }))
-      .filter((entry) => entry.value > 0)
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 6)
-  }, [data])
-
-  const statusTone = (status: 'idle' | 'syncing' | 'error' | 'success') => {
-    switch (status) {
-      case 'success':
-        return 'chip-success'
-      case 'error':
-        return 'chip-error'
-      case 'syncing':
-        return 'chip-info'
-      default:
-        return 'chip-warn'
+    const assetList = Array.from(assets.values()).filter(
+      (asset) => asset.valueUsd > 0,
+    )
+    const totalValueUsd = assetList.reduce(
+      (sum, asset) => sum + asset.valueUsd,
+      0,
+    )
+    const creditTokens = allTokens.filter(
+      (token) => token.type === 'credit' || token.type === 'supply',
+    )
+    const debtTokens = allTokens.filter((token) => token.type === 'debt')
+    const creditTotalUsd = creditTokens.reduce(
+      (sum, token) => sum + token.value_usd,
+      0,
+    )
+    const debtTotalUsd = debtTokens.reduce(
+      (sum, token) => sum + token.value_usd,
+      0,
+    )
+    const baseSupplyApy =
+      creditTotalUsd > 0
+        ? creditTokens.reduce(
+            (sum, token) => sum + token.apy * token.value_usd,
+            0,
+          ) / creditTotalUsd
+        : undefined
+    const baseBorrowApy =
+      debtTotalUsd > 0
+        ? debtTokens.reduce(
+            (sum, token) => sum + token.apy * token.value_usd,
+            0,
+          ) / debtTotalUsd
+        : undefined
+    const creditProtocols = creditTokens.reduce(
+      (acc, token) => {
+        const key = token.protocol || 'unknown'
+        acc.set(key, (acc.get(key) ?? 0) + token.value_usd)
+        return acc
+      },
+      new Map<string, number>(),
+    )
+    const debtProtocols = debtTokens.reduce(
+      (acc, token) => {
+        const key = token.protocol || 'unknown'
+        acc.set(key, (acc.get(key) ?? 0) + token.value_usd)
+        return acc
+      },
+      new Map<string, number>(),
+    )
+    const totalCreditUsd = Object.values(data).reduce(
+      (sum, portfolio) => sum + portfolio.stats.total_credit_usd,
+      0,
+    )
+    const totalDebtUsd = Object.values(data).reduce(
+      (sum, portfolio) => sum + portfolio.stats.total_debt_usd,
+      0,
+    )
+    const totalIdleUsd = Object.values(data).reduce(
+      (sum, portfolio) => sum + portfolio.stats.total_idle_usd,
+      0,
+    )
+    return {
+      assets: assetList,
+      totalValueUsd,
+      creditTotalUsd: totalCreditUsd,
+      debtTotalUsd: totalDebtUsd,
+      baseSupplyApy,
+      baseBorrowApy,
+      creditProtocols: Array.from(creditProtocols.entries()).map(
+        ([protocol, valueUsd]) => ({ protocol, valueUsd }),
+      ),
+      debtProtocols: Array.from(debtProtocols.entries()).map(
+        ([protocol, valueUsd]) => ({
+          protocol,
+          valueUsd,
+        }),
+      ),
+      totalIdleUsd,
+      hasCreditOrDebt:
+        totalCreditUsd > 0 ||
+        totalDebtUsd > 0 ||
+        baseSupplyApy !== undefined ||
+        baseBorrowApy !== undefined ||
+        creditProtocols.size > 0 ||
+        debtProtocols.size > 0,
+      hasFundsHealth:
+        totals.netApy > 0 ||
+        totalCreditUsd > 0 ||
+        totalIdleUsd > 0 ||
+        totalDebtUsd > 0,
     }
-  }
-
-  const supabaseIssue =
-    !supabaseConfigured ||
-    !isSupabaseKeyValid ||
-    supabaseAuthStatus.disabled ||
-    Boolean(supabaseAuthStatus.error)
-  const supabaseMessage = !supabaseConfigured
-    ? 'Supabase not configured.'
-    : !isSupabaseKeyValid
-      ? 'Supabase key mismatch.'
-      : supabaseAuthStatus.disabled
-        ? 'Anonymous sign-in disabled.'
-        : supabaseAuthStatus.error
-          ? `Supabase auth error: ${supabaseAuthStatus.error}`
-          : null
+  }, [data, getLogo, tokenLogoVersion, totals.netApy])
 
   const annualRevenue = totals.totalValue * (totals.netApy / 100)
   const monthlyRevenue = annualRevenue / 12
@@ -139,44 +219,15 @@ export function HomePage() {
 
   const showSkeleton = loading && !hasLoadedOnce
 
+  usePullToRefresh({
+    enabled: wallets.length > 0,
+    onRefresh: () => refresh(true),
+  })
+
   return (
     <div className="glass-grid" style={{ gap: 24 }}>
       <section>
         <LiquidCard>
-          <div className="glass-header">
-            <div>
-              <div className="glass-title">Portfolio Overview</div>
-              <div className="glass-subtitle">
-                Real-time wallet balances, exposures, and APY.
-              </div>
-            </div>
-            <div className="toolbar">
-              <span
-                className={`status-pill header-chip ${
-                  loading ? 'chip-info' : 'chip-success'
-                }`}
-              >
-                <Activity className="chip-icon" size={14} strokeWidth={1.8} />
-                {loading ? 'Updating...' : 'Live'}
-              </span>
-              <LiquidButton
-                variant="secondary"
-                className="header-chip"
-                onClick={() => {
-                  console.info('[portfolio] refresh click', {
-                    source: 'home',
-                    wallets: wallets.length,
-                    chainIds: settings.chainIds,
-                    hasAlchemyKey: Boolean(settings.alchemyApiKey),
-                  })
-                  refresh()
-                }}
-              >
-                <RefreshCw className="chip-icon" size={14} strokeWidth={1.8} />
-                Refresh now
-              </LiquidButton>
-            </div>
-          </div>
           <div className="glass-grid two" style={{ marginTop: 16 }}>
             <LiquidCard variant="dark">
               <div className="wallet-meta">Total Portfolio Value</div>
@@ -203,64 +254,40 @@ export function HomePage() {
                 </>
               )}
             </LiquidCard>
-            <LiquidCard variant="dark">
-              <div className="wallet-meta">Token exposures</div>
-              {showSkeleton ? (
-                <div className="skeleton-chip-row" style={{ marginTop: 10 }}>
-                  <span className="skeleton-pill" />
-                  <span className="skeleton-pill" />
-                  <span className="skeleton-pill" />
-                  <span className="skeleton-pill" />
-                </div>
-              ) : (
-                <div className="chip-row" style={{ marginTop: 10 }}>
-                  {topPositions.length === 0 && (
-                    <span className="notice">No positions yet.</span>
-                  )}
-                  {topPositions.map((position) => {
-                    const logoUrl = getLogo(position.address)
-                    return (
-                      <span
-                        key={`${position.sourceWallet}-${position.address}`}
-                        className="glass-chip"
-                      >
-                        {logoUrl && (
-                          <img src={logoUrl} alt={position.metadata.symbol} />
-                        )}
-                        {position.metadata.symbol} · {formatCurrency(position.value_usd)}
-                      </span>
-                    )
-                  })}
-                </div>
-              )}
-            </LiquidCard>
           </div>
-          <div className="glass-grid two" style={{ marginTop: 16 }}>
+          <div className="glass-grid" style={{ marginTop: 16 }}>
             <LiquidCard variant="dark">
-              <div className="wallet-meta">Protocol exposures</div>
-              {showSkeleton ? (
-                <div className="skeleton-chip-row" style={{ marginTop: 10 }}>
-                  <span className="skeleton-pill" />
-                  <span className="skeleton-pill" />
-                  <span className="skeleton-pill" />
-                </div>
-              ) : (
-                <div className="chip-row" style={{ marginTop: 10 }}>
-                  {protocolExposures.length === 0 && (
-                    <span className="notice">No protocol exposure yet.</span>
-                  )}
-                  {protocolExposures.map((entry) => (
-                    <span
-                      key={entry.protocol}
-                      className="glass-chip protocol-chip"
-                    >
-                      <span className="protocol-logo">
-                        {entry.protocol.slice(0, 1)}
-                      </span>
-                      {entry.protocol.toLowerCase()} · {formatCurrency(entry.value)}
-                    </span>
-                  ))}
-                </div>
+              <VaultBalanceSheet
+                assets={aggregated.assets}
+                totalValueUsd={aggregated.totalValueUsd}
+                isLoading={loading}
+                debankUrl={
+                  wallets.length === 1
+                    ? `https://debank.com/profile/${wallets[0].address}`
+                    : undefined
+                }
+              />
+              {aggregated.hasCreditOrDebt && (
+                <VaultCreditDebt
+                  creditTotalUsd={aggregated.creditTotalUsd}
+                  debtTotalUsd={aggregated.debtTotalUsd}
+                  baseSupplyApy={aggregated.baseSupplyApy}
+                  baseBorrowApy={aggregated.baseBorrowApy}
+                  creditProtocols={aggregated.creditProtocols}
+                  debtProtocols={aggregated.debtProtocols}
+                />
+              )}
+              {aggregated.hasFundsHealth && (
+                <VaultFundsHealth
+                  netStrategyApy={totals.netApy}
+                  inUseFunds={aggregated.creditTotalUsd}
+                  availableFunds={aggregated.totalIdleUsd}
+                  healthFactor={
+                    aggregated.debtTotalUsd > 0
+                      ? aggregated.creditTotalUsd / aggregated.debtTotalUsd
+                      : undefined
+                  }
+                />
               )}
             </LiquidCard>
           </div>
@@ -275,21 +302,11 @@ export function HomePage() {
       <section>
         <LiquidCard>
           <div className="glass-header">
-            <div>
-              <h3>Tracked wallets</h3>
-            </div>
+            <div className="glass-title">Wallets</div>
             <div className="toolbar">
               <span className="status-pill header-chip chip-info">
                 <Wallet className="chip-icon" size={14} strokeWidth={1.8} />
-                {wallets.length} wallets
-              </span>
-              <span
-                className={`status-pill header-chip ${
-                  supabaseConfigured ? statusTone(syncStatus) : 'chip-warn'
-                }`}
-              >
-                <Database className="chip-icon" size={14} strokeWidth={1.8} />
-                Supabase {supabaseConfigured ? syncStatus : 'offline'}
+                {wallets.length} {wallets.length === 1 ? 'wallet' : 'wallets'}
               </span>
               <LiquidButton
                 variant="secondary"
@@ -298,22 +315,17 @@ export function HomePage() {
                 disabled={!supabaseConfigured}
               >
                 <RefreshCw className="chip-icon" size={14} strokeWidth={1.8} />
-                Sync now
+                Sync
               </LiquidButton>
               <Link className="glass-button secondary link header-chip" to="/settings">
                 <Wallet className="chip-icon" size={14} strokeWidth={1.8} />
-                Manage wallets
+                Manage
               </Link>
             </div>
           </div>
           {syncError && (
             <p className="notice error-log" style={{ marginTop: 8 }}>
               {syncError}
-            </p>
-          )}
-          {supabaseIssue && supabaseMessage && (
-            <p className="notice error-log" style={{ marginTop: 8 }}>
-              {supabaseMessage}
             </p>
           )}
           <div className="glass-grid" style={{ gap: 12 }}>

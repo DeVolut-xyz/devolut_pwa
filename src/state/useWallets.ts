@@ -78,7 +78,7 @@ export function useWallets() {
       setSyncStatus('success')
     } catch (error) {
       setSyncStatus('error')
-      setSyncError(error instanceof Error ? error.message : 'Supabase sync failed')
+      setSyncError(error instanceof Error ? error.message : 'Sync failed')
       console.error('[supabase] wallet sync error', error)
     }
   }

@@ -150,10 +150,10 @@ export async function ensureSupabaseUser() {
   const { data, error } = await supabase.auth.signInAnonymously()
   if (error) {
     const status = (error as { status?: number }).status
-    const message = error.message || 'Supabase auth error'
+    const message = error.message || 'Auth error'
     if (status === 422) {
       supabaseAuthError =
-        'Anonymous sign-in blocked. Disable Captcha or enable Anonymous in Supabase Auth.'
+        'Anonymous sign-in blocked. Disable Captcha or enable Anonymous sign-in.'
     } else {
       supabaseAuthError = message
     }

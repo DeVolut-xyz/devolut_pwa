@@ -30,7 +30,7 @@ export function SignupPage() {
           Create a passkey to secure your APY Screener account.
         </p>
         <p className="notice">
-          Supabase sync is {isSupabaseConfigured ? 'enabled' : 'disabled'}.
+          Cloud sync is {isSupabaseConfigured ? 'enabled' : 'disabled'}.
           {!isSupabaseKeyValid && ' Check URL + anon key match.'}
         </p>
         {!isSecureContext && (

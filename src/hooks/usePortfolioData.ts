@@ -1,25 +1,33 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { ChainId } from '@factordao/tokenlist'
 import type { TrackedWallet } from '../state/useWallets'
 import { fetchWalletPortfolio } from '../services/portfolio'
 import type { WalletPortfolio } from '../services/portfolio'
+import {
+  getPortfolioState,
+  setPortfolioState,
+  usePortfolioStore,
+} from '../state/portfolioStore'
+
+const DEFAULT_REFRESH_INTERVAL_MS = 5 * 60 * 1000
 
 export function usePortfolioData({
   wallets,
   chainIds,
   alchemyApiKey,
-  refreshIntervalMs,
+  refreshIntervalMs = DEFAULT_REFRESH_INTERVAL_MS,
+  autoRefresh = true,
+  refreshOnMount,
 }: {
   wallets: TrackedWallet[]
   chainIds: ChainId[]
   alchemyApiKey: string
-  refreshIntervalMs: number
+  refreshIntervalMs?: number
+  autoRefresh?: boolean
+  refreshOnMount?: boolean
 }) {
-  const [data, setData] = useState<Record<string, WalletPortfolio>>({})
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { data, loading, error, lastRefreshAt } = usePortfolioStore()
   const refreshInFlight = useRef(false)
-  const lastRefreshAt = useRef(0)
   const minRefreshIntervalMs = 15000
   const batchSize = 2
   const batchDelayMs = 500
@@ -29,24 +37,32 @@ export function usePortfolioData({
     [wallets],
   )
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (force = false) => {
     if (refreshInFlight.current) {
       return
     }
     const now = Date.now()
-    if (now - lastRefreshAt.current < minRefreshIntervalMs) {
+    const previousRefreshAt = getPortfolioState().lastRefreshAt
+    if (!force && now - previousRefreshAt < minRefreshIntervalMs) {
       return
     }
     refreshInFlight.current = true
-    lastRefreshAt.current = now
+    setPortfolioState({ loading: true, error: null })
     if (addressList.length === 0) {
-      setError(null)
-      setData({})
+      setPortfolioState({
+        data: {},
+        loading: false,
+        error: null,
+        lastRefreshAt: now,
+      })
       refreshInFlight.current = false
       return
     }
     if (!alchemyApiKey) {
-      setError('Add an Alchemy API key in Settings to fetch portfolio data.')
+      setPortfolioState({
+        loading: false,
+        error: 'Add an Alchemy API key in Settings to fetch portfolio data.',
+      })
       refreshInFlight.current = false
       return
     }
@@ -55,8 +71,6 @@ export function usePortfolioData({
       chainIds,
       refreshIntervalMs,
     })
-    setLoading(true)
-    setError(null)
     try {
       const results: PromiseSettledResult<WalletPortfolio>[] = []
       for (let i = 0; i < addressList.length; i += batchSize) {
@@ -83,11 +97,20 @@ export function usePortfolioData({
         failures += 1
         console.error('[portfolio] wallet fetch failed', result.reason)
       })
-      setData(mapped)
+      const previousData = getPortfolioState().data
+      const nextData = { ...previousData, ...mapped }
       if (failures > 0) {
-        setError(
-          `Some wallets failed to refresh (${failures}/${results.length}). Check network or Alchemy key.`,
-        )
+        setPortfolioState({
+          data: nextData,
+          error: `Some wallets failed to refresh (${failures}/${results.length}). Check network or Alchemy key.`,
+          lastRefreshAt: now,
+        })
+      } else {
+        setPortfolioState({
+          data: nextData,
+          error: null,
+          lastRefreshAt: now,
+        })
       }
       console.info('[portfolio] refresh success', {
         wallets: results.length,
@@ -95,22 +118,42 @@ export function usePortfolioData({
       })
     } catch (err) {
       console.error('[portfolio] refresh error', err)
-      setError(err instanceof Error ? err.message : 'Failed to fetch portfolio')
+      setPortfolioState({
+        error: err instanceof Error ? err.message : 'Failed to fetch portfolio',
+        lastRefreshAt: now,
+      })
     } finally {
-      setLoading(false)
+      setPortfolioState({ loading: false })
       refreshInFlight.current = false
     }
   }, [alchemyApiKey, addressList, chainIds])
 
   useEffect(() => {
-    refresh()
+    if (!autoRefresh) {
+      return
+    }
+    const now = Date.now()
+    const isStale =
+      !lastRefreshAt || now - lastRefreshAt > refreshIntervalMs
+    const shouldRefresh = refreshOnMount ?? isStale
+    if (shouldRefresh) {
+      refresh()
+    }
     if (!alchemyApiKey || addressList.length === 0) {
       return
     }
     const intervalMs = Math.max(refreshIntervalMs, minRefreshIntervalMs)
     const timer = window.setInterval(refresh, intervalMs)
     return () => window.clearInterval(timer)
-  }, [addressList, alchemyApiKey, refresh, refreshIntervalMs])
+  }, [
+    addressList,
+    alchemyApiKey,
+    autoRefresh,
+    lastRefreshAt,
+    refresh,
+    refreshIntervalMs,
+    refreshOnMount,
+  ])
 
   return { data, loading, error, refresh }
 }

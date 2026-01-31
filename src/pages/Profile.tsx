@@ -4,48 +4,22 @@ import { useProfile } from '../state/useProfile'
 import { isSupabaseConfigured, signOutSupabase } from '../services/supabase'
 
 export function ProfilePage() {
-  const {
-    profile,
-    updateProfile,
-    saveToSupabase,
-    saveStatus,
-    saveError,
-  } = useProfile()
-
-  const statusTone = (status: 'idle' | 'saving' | 'success' | 'error') => {
-    switch (status) {
-      case 'success':
-        return 'chip-success'
-      case 'error':
-        return 'chip-error'
-      case 'saving':
-        return 'chip-info'
-      default:
-        return 'chip-warn'
-    }
-  }
+  const { profile, updateProfile, saveToSupabase, saveError } = useProfile()
 
   return (
     <div className="glass-grid" style={{ gap: 24 }}>
       <section>
         <LiquidCard>
           <div className="glass-header">
-            <div>
-              <h3>Profile</h3>
-              <p className="notice">Personalize your account details.</p>
-            </div>
+            <div className="glass-title">Profile</div>
             <div className="toolbar">
-              <span className={`status-pill header-chip ${statusTone(saveStatus)}`}>
-                <Save className="chip-icon" size={14} strokeWidth={1.8} />
-                Save {saveStatus}
-              </span>
               <LiquidButton
                 variant="secondary"
                 className="header-chip"
                 onClick={saveToSupabase}
               >
                 <Save className="chip-icon" size={14} strokeWidth={1.8} />
-                Save profile
+                Save
               </LiquidButton>
               {isSupabaseConfigured && (
                 <LiquidButton
