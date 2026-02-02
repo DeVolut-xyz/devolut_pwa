@@ -6,9 +6,21 @@ import { usePortfolioData } from '../hooks/usePortfolioData'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
 import { formatCurrency, formatPercent, sumWalletValue } from '../services/portfolio'
 import { buildTokenLogoKey, useTokenLogos } from '../data/tokenLogos'
+import { VaultBalanceSheet } from '../components/VaultBalanceSheet'
+import { VaultCreditDebt } from '../components/VaultCreditDebt'
+import { VaultFundsHealth } from '../components/VaultFundsHealth'
 import { LiquidCard } from '../ui/liquid'
 import { copyToClipboard, shortenAddress } from '../utils/format'
 import { Copy } from 'lucide-react'
+
+type AggregatedAsset = {
+  key: string
+  symbol: string
+  amount: number
+  valueUsd: number
+  protocol?: string
+  logoUrl?: string
+}
 
 export function WalletDetailPage() {
   const params = useParams()
@@ -23,6 +35,7 @@ export function WalletDetailPage() {
     wallets: wallet ? [wallet] : [],
     chainIds: settings.chainIds,
     alchemyApiKey: settings.alchemyApiKey,
+    autoRefresh: false,
     refreshOnMount: false,
   })
 
@@ -43,6 +56,132 @@ export function WalletDetailPage() {
       .map(([key, value]) => ({ key, ...value }))
       .sort((a, b) => b.value_usd - a.value_usd)
   }, [portfolio, tokenLogoVersion])
+
+  const aggregated = useMemo(() => {
+    if (!portfolio) {
+      return {
+        assets: [] as AggregatedAsset[],
+        totalValueUsd: 0,
+        creditTotalUsd: 0,
+        debtTotalUsd: 0,
+        baseSupplyApy: undefined as number | undefined,
+        baseBorrowApy: undefined as number | undefined,
+        creditProtocols: [] as Array<{ protocol: string; valueUsd: number }>,
+        debtProtocols: [] as Array<{ protocol: string; valueUsd: number }>,
+        totalIdleUsd: 0,
+        hasCreditOrDebt: false,
+        hasFundsHealth: false,
+      }
+    }
+
+    const assets = new Map<string, AggregatedAsset>()
+    const allTokens: Array<{
+      value_usd: number
+      apy: number
+      type: string
+      protocol: string
+    }> = []
+    Object.entries(portfolio.deposits).forEach(([tokenKey, deposit]) => {
+      const normalizedKey = buildTokenLogoKey({
+        chainId: deposit.chainId,
+        address: deposit.metadata.address,
+        tokenKey,
+      })
+      allTokens.push({
+        value_usd: deposit.value_usd,
+        apy: deposit.apy,
+        type: deposit.type,
+        protocol: deposit.protocol,
+      })
+      const logoUrl =
+        (normalizedKey ? getLogo(normalizedKey) : undefined) ??
+        getLogo(deposit.metadata.symbol)
+      const next = assets.get(tokenKey) ?? {
+        key: tokenKey,
+        symbol: deposit.metadata.symbol,
+        amount: 0,
+        valueUsd: 0,
+        protocol:
+          deposit.protocol && deposit.protocol !== 'unknown'
+            ? deposit.protocol
+            : undefined,
+        logoUrl,
+      }
+      next.amount += deposit.balance_fmt
+      next.valueUsd += deposit.value_usd
+      assets.set(tokenKey, next)
+    })
+
+    const assetList = Array.from(assets.values()).filter(
+      (asset) => asset.valueUsd > 0,
+    )
+    const totalValueUsd = sumWalletValue(portfolio)
+    const creditTokens = allTokens.filter(
+      (token) => token.type === 'credit' || token.type === 'supply',
+    )
+    const debtTokens = allTokens.filter((token) => token.type === 'debt')
+    const creditTotalUsd = portfolio.stats.total_credit_usd
+    const debtTotalUsd = portfolio.stats.total_debt_usd
+    const baseSupplyApy =
+      creditTotalUsd > 0
+        ? creditTokens.reduce(
+            (sum, token) => sum + token.apy * token.value_usd,
+            0,
+          ) / creditTotalUsd
+        : undefined
+    const baseBorrowApy =
+      debtTotalUsd > 0
+        ? debtTokens.reduce(
+            (sum, token) => sum + token.apy * token.value_usd,
+            0,
+          ) / debtTotalUsd
+        : undefined
+    const creditProtocols = creditTokens.reduce(
+      (acc, token) => {
+        const key = token.protocol || 'unknown'
+        acc.set(key, (acc.get(key) ?? 0) + token.value_usd)
+        return acc
+      },
+      new Map<string, number>(),
+    )
+    const debtProtocols = debtTokens.reduce(
+      (acc, token) => {
+        const key = token.protocol || 'unknown'
+        acc.set(key, (acc.get(key) ?? 0) + token.value_usd)
+        return acc
+      },
+      new Map<string, number>(),
+    )
+    const totalIdleUsd = portfolio.stats.total_idle_usd
+
+    return {
+      assets: assetList,
+      totalValueUsd,
+      creditTotalUsd,
+      debtTotalUsd,
+      baseSupplyApy,
+      baseBorrowApy,
+      creditProtocols: Array.from(creditProtocols.entries()).map(
+        ([protocol, valueUsd]) => ({ protocol, valueUsd }),
+      ),
+      debtProtocols: Array.from(debtProtocols.entries()).map(
+        ([protocol, valueUsd]) => ({ protocol, valueUsd }),
+      ),
+      totalIdleUsd,
+      hasCreditOrDebt:
+        creditTotalUsd > 0 ||
+        debtTotalUsd > 0 ||
+        baseSupplyApy !== undefined ||
+        baseBorrowApy !== undefined ||
+        creditProtocols.size > 0 ||
+        debtProtocols.size > 0,
+      hasFundsHealth:
+        portfolio.stats.calculated_apy > 0 ||
+        creditTotalUsd > 0 ||
+        totalIdleUsd > 0 ||
+        debtTotalUsd > 0,
+    }
+  }, [portfolio, getLogo, tokenLogoVersion])
 
   if (!wallet) {
     return (
@@ -74,6 +213,14 @@ export function WalletDetailPage() {
                   <Copy size={14} strokeWidth={1.8} />
                 </button>
               </div>
+              <a
+                className="balance-sheet-link"
+                href={`https://debank.com/profile/${wallet.address}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                See More on Debank
+              </a>
             </div>
           </div>
           <div className="glass-grid three" style={{ marginTop: 16 }}>
@@ -101,6 +248,37 @@ export function WalletDetailPage() {
               <div className="wallet-meta">
                 Idle {formatCurrency(portfolio?.stats.total_idle_usd ?? 0)}
               </div>
+            </LiquidCard>
+          </div>
+          <div className="glass-grid" style={{ marginTop: 16 }}>
+            <LiquidCard variant="dark">
+              <VaultBalanceSheet
+                assets={aggregated.assets}
+                totalValueUsd={aggregated.totalValueUsd}
+                debankUrl={`https://debank.com/profile/${wallet.address}`}
+              />
+              {aggregated.hasCreditOrDebt && (
+                <VaultCreditDebt
+                  creditTotalUsd={aggregated.creditTotalUsd}
+                  debtTotalUsd={aggregated.debtTotalUsd}
+                  baseSupplyApy={aggregated.baseSupplyApy}
+                  baseBorrowApy={aggregated.baseBorrowApy}
+                  creditProtocols={aggregated.creditProtocols}
+                  debtProtocols={aggregated.debtProtocols}
+                />
+              )}
+              {aggregated.hasFundsHealth && (
+                <VaultFundsHealth
+                  netStrategyApy={portfolio?.stats.calculated_apy ?? 0}
+                  inUseFunds={aggregated.creditTotalUsd}
+                  availableFunds={aggregated.totalIdleUsd}
+                  healthFactor={
+                    aggregated.debtTotalUsd > 0
+                      ? aggregated.creditTotalUsd / aggregated.debtTotalUsd
+                      : undefined
+                  }
+                />
+              )}
             </LiquidCard>
           </div>
           {error && (

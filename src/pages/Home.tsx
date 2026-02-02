@@ -313,13 +313,18 @@ export function HomePage() {
                 className="header-chip"
                 onClick={syncFromSupabase}
                 disabled={!supabaseConfigured}
+                title="Sync"
+                aria-label="Sync"
               >
                 <RefreshCw className="chip-icon" size={14} strokeWidth={1.8} />
-                Sync
               </LiquidButton>
-              <Link className="glass-button secondary link header-chip" to="/settings">
+              <Link
+                className="glass-button secondary link header-chip"
+                to="/settings"
+                title="Manage"
+                aria-label="Manage"
+              >
                 <Wallet className="chip-icon" size={14} strokeWidth={1.8} />
-                Manage
               </Link>
             </div>
           </div>

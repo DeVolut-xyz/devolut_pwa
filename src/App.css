@@ -571,12 +571,12 @@ body {
 
 .credit-card,
 .debt-card {
-  padding: 12px;
-  border-radius: 18px;
+  padding: 10px 12px;
+  border-radius: 16px;
   border: 1px solid;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .credit-card {
@@ -596,7 +596,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: rgba(210, 216, 255, 0.7);
@@ -604,14 +604,14 @@ body {
 
 .credit-header strong,
 .credit-row strong {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   letter-spacing: 0;
   color: rgba(210, 255, 235, 0.95);
 }
 
 .debt-header strong,
 .debt-row strong {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   letter-spacing: 0;
   color: rgba(255, 220, 220, 0.95);
 }
@@ -632,11 +632,11 @@ body {
 .exposure-chip {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 12px;
+  gap: 8px;
+  padding: 4px 10px;
   border-radius: 999px;
   border: 1px solid;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -675,7 +675,7 @@ body {
 }
 
 .exposure-value {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   opacity: 0.9;
 }
 
@@ -687,7 +687,7 @@ body {
 }
 
 .metric-card {
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.06);
@@ -697,14 +697,14 @@ body {
 }
 
 .metric-title {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: rgba(210, 216, 255, 0.6);
 }
 
 .metric-value {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: rgba(230, 240, 255, 0.95);
 }
@@ -802,6 +802,23 @@ body {
 }
 
 @media (max-width: 720px) {
+  .glass-title {
+    font-size: 1.2rem;
+  }
+
+  .glass-subtitle {
+    font-size: 0.82rem;
+  }
+
+  .toolbar {
+    gap: 8px;
+  }
+
+  .status-pill {
+    padding: 4px 8px;
+    font-size: 0.7rem;
+  }
+
   .token-row {
     grid-template-columns: 1.6fr 1fr;
     row-gap: 6px;
@@ -812,8 +829,106 @@ body {
   }
 
   .header-chip {
-    padding: 4px 10px;
+    padding: 3px 8px;
+    font-size: 0.66rem;
+  }
+
+  .glass-button {
+    padding: 7px 12px;
     font-size: 0.72rem;
+  }
+
+  .glass-button.secondary {
+    padding: 6px 10px;
+  }
+
+  .balance-sheet-assets {
+    gap: 6px;
+  }
+
+  .asset-badge {
+    gap: 6px;
+    padding: 4px 8px;
+  }
+
+  .asset-left {
+    gap: 6px;
+  }
+
+  .asset-icon {
+    width: 16px;
+    height: 16px;
+    font-size: 0.55rem;
+  }
+
+  .asset-symbol,
+  .asset-amount {
+    font-size: 0.68rem;
+  }
+
+  .asset-protocol {
+    font-size: 0.58rem;
+  }
+
+  .asset-divider {
+    height: 14px;
+  }
+
+  .asset-stats {
+    font-size: 0.6rem;
+  }
+
+  .credit-card,
+  .debt-card {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .credit-header,
+  .debt-header,
+  .credit-row,
+  .debt-row {
+    font-size: 0.7rem;
+  }
+
+  .credit-header strong,
+  .credit-row strong,
+  .debt-header strong,
+  .debt-row strong {
+    font-size: 0.82rem;
+  }
+
+  .exposure-chip {
+    padding: 3px 8px;
+    gap: 6px;
+    font-size: 0.62rem;
+  }
+
+  .exposure-logo {
+    width: 14px;
+    height: 14px;
+  }
+
+  .exposure-value {
+    font-size: 0.6rem;
+  }
+
+  .funds-health-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .metric-card {
+    padding: 6px 8px;
+    gap: 4px;
+  }
+
+  .metric-title {
+    font-size: 0.55rem;
+  }
+
+  .metric-value {
+    font-size: 0.78rem;
   }
 
   .glass-input,
