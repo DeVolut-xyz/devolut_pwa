@@ -27,12 +27,14 @@ export function AssetBadge({
           <span className="asset-symbol">{symbol}</span>
           {protocol && <span className="asset-protocol">{protocol}</span>}
         </div>
-        <span className="asset-amount">{amount}</span>
+        <span className="asset-amount">
+          <span>{amount}</span>
+          <span className="asset-amount-usd">{formatCurrency(valueUsd)} USD</span>
+        </span>
       </div>
       <div className="asset-divider" />
       <div className="asset-stats">
         <span className="asset-percent">{percentage}</span>
-        <span className="asset-value">{formatCurrency(valueUsd)} USD</span>
       </div>
     </div>
   )

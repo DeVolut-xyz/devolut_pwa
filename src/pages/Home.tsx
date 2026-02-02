@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useSettings } from '../state/useSettings'
 import { useWallets } from '../state/useWallets'
 import { usePortfolioData } from '../hooks/usePortfolioData'
@@ -26,6 +26,7 @@ type AggregatedAsset = {
 export function HomePage() {
   const { settings } = useSettings()
   const { wallets, syncFromSupabase, syncError } = useWallets()
+  const navigate = useNavigate()
   const supabaseConfigured = isSupabaseConfigured
   const { getLogo, version: tokenLogoVersion } = useTokenLogos()
   const { data, loading, error, refresh } = usePortfolioData({
@@ -328,20 +329,36 @@ export function HomePage() {
               </Link>
             </div>
           </div>
+          <div className="wallet-header-spacer" />
           {syncError && (
             <p className="notice error-log" style={{ marginTop: 8 }}>
               {syncError}
             </p>
           )}
-          <div className="glass-grid" style={{ gap: 12 }}>
+          <div className="glass-grid wallet-list" style={{ gap: 10 }}>
             {wallets.length === 0 && (
               <p className="notice">No wallets yet. Add your first address.</p>
             )}
-            {wallets.map((wallet) => (
+            {wallets.map((wallet) => {
+              const portfolio = data[wallet.address.toLowerCase()]
+              const healthFactor =
+                portfolio && portfolio.stats.total_debt_usd > 0
+                  ? portfolio.stats.total_credit_usd / portfolio.stats.total_debt_usd
+                  : undefined
+              return (
                 <LiquidCard
                   key={wallet.id}
                   variant="dark"
-                  className="wallet-card compact"
+                  className="wallet-card compact clickable"
+                  onClick={() => navigate(`/address/${wallet.address}`)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      navigate(`/address/${wallet.address}`)
+                    }
+                  }}
                 >
                   <div className="wallet-title">
                     <div>
@@ -350,7 +367,10 @@ export function HomePage() {
                         {shortenAddress(wallet.address)}
                         <button
                           className="copy-button"
-                          onClick={() => copyToClipboard(wallet.address)}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            copyToClipboard(wallet.address)
+                          }}
                           title="Copy address"
                           aria-label="Copy address"
                         >
@@ -358,14 +378,32 @@ export function HomePage() {
                         </button>
                       </div>
                     </div>
-                    <div className="nav-actions">
-                      <Link className="glass-button secondary link" to={`/address/${wallet.address}`}>
-                        View
-                      </Link>
+                  </div>
+                  <div className="wallet-summary">
+                    <div className="wallet-summary-item">
+                      <span className="wallet-summary-label">Balance</span>
+                      <span className="wallet-summary-value">
+                        {portfolio ? formatCurrency(sumWalletValue(portfolio)) : '—'}
+                      </span>
+                    </div>
+                    <div className="wallet-summary-item">
+                      <span className="wallet-summary-label">Net APY</span>
+                      <span className="wallet-summary-value">
+                        {portfolio
+                          ? formatPercent(portfolio.stats.calculated_apy)
+                          : '—'}
+                      </span>
+                    </div>
+                    <div className="wallet-summary-item">
+                      <span className="wallet-summary-label">Health</span>
+                      <span className="wallet-summary-value">
+                        {healthFactor !== undefined ? healthFactor.toFixed(2) : '—'}
+                      </span>
                     </div>
                   </div>
                 </LiquidCard>
-            ))}
+              )
+            })}
           </div>
         </LiquidCard>
       </section>
