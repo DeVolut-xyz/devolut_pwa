@@ -1,4 +1,5 @@
 import { formatCurrency } from '../services/portfolio'
+import { ProtocolLogo } from './ProtocolLogo'
 
 type AssetBadgeProps = {
   symbol: string
@@ -22,10 +23,11 @@ export function AssetBadge({
       <div className="asset-left">
         <div className="asset-icon">
           {logoUrl ? <img src={logoUrl} alt={symbol} /> : symbol.slice(0, 2)}
-        </div>
-        <div className="asset-meta">
-          <span className="asset-symbol">{symbol}</span>
-          {protocol && <span className="asset-protocol">{protocol}</span>}
+          {protocol && (
+            <span className="asset-protocol-logo">
+              <ProtocolLogo protocol={protocol} />
+            </span>
+          )}
         </div>
         <span className="asset-amount">
           <span>{amount}</span>
