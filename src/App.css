@@ -4,7 +4,7 @@
 
 body {
   -webkit-text-size-adjust: 100%;
-  padding-top: env(safe-area-inset-top);
+  padding-top: 0;
 }
 
 .glass-shell {
@@ -974,6 +974,27 @@ body {
   .debt-header strong,
   .debt-row strong {
     font-size: 0.82rem;
+  }
+
+  .credit-debt-grid {
+    display: flex;
+    overflow-x: auto;
+    gap: 10px;
+    padding-bottom: 4px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .credit-card,
+  .debt-card {
+    min-width: 78%;
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+
+  .credit-debt-grid::after {
+    content: '';
+    flex: 0 0 12%;
   }
 
   .exposure-chip {

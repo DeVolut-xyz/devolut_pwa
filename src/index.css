@@ -13,10 +13,8 @@
   box-sizing: border-box;
 }
 
+html,
 body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
   background: radial-gradient(
       circle at top left,
       rgba(98, 126, 234, 0.35),
@@ -28,6 +26,13 @@ body {
       transparent 45%
     ),
     #0b0f1a;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
 }
 
 a {
