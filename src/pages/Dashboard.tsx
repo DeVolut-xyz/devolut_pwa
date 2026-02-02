@@ -17,6 +17,7 @@ import {
 import { copyToClipboard, shortenAddress } from '../utils/format'
 import { Copy } from 'lucide-react'
 import { useProfile } from '../state/useProfile'
+import { useAuth } from '../state/useAuth'
 
 const chainOptions = [
   { label: 'Ethereum', value: ChainId.ETHEREUM },
@@ -69,6 +70,17 @@ export function DashboardPage() {
     saveToSupabase: saveProfileToSupabase,
     saveError: profileSaveError,
   } = useProfile()
+  const { logout } = useAuth()
+
+  const handleSignOut = async () => {
+    try {
+      await signOutSupabase()
+    } catch (error) {
+      console.error('[auth] sign out failed', error)
+    } finally {
+      logout()
+    }
+  }
 
   const totals = useMemo(() => {
     let totalValue = 0
@@ -347,7 +359,7 @@ export function DashboardPage() {
                     <LiquidButton variant="secondary" onClick={refreshSupabaseSession}>
                       Check session
                     </LiquidButton>
-                    <LiquidButton variant="secondary" onClick={signOutSupabase}>
+                    <LiquidButton variant="secondary" onClick={handleSignOut}>
                       Sign out
                     </LiquidButton>
                   </div>

@@ -2,9 +2,21 @@ import { Save, LogOut } from 'lucide-react'
 import { LiquidButton, LiquidCard, LiquidInput } from '../ui/liquid'
 import { useProfile } from '../state/useProfile'
 import { isSupabaseConfigured, signOutSupabase } from '../services/supabase'
+import { useAuth } from '../state/useAuth'
 
 export function ProfilePage() {
   const { profile, updateProfile, saveToSupabase, saveError } = useProfile()
+  const { logout } = useAuth()
+
+  const handleSignOut = async () => {
+    try {
+      await signOutSupabase()
+    } catch (error) {
+      console.error('[auth] sign out failed', error)
+    } finally {
+      logout()
+    }
+  }
 
   return (
     <div className="glass-grid" style={{ gap: 24 }}>
@@ -25,7 +37,7 @@ export function ProfilePage() {
                 <LiquidButton
                   variant="secondary"
                   className="header-chip"
-                  onClick={signOutSupabase}
+                  onClick={handleSignOut}
                 >
                   <LogOut className="chip-icon" size={14} strokeWidth={1.8} />
                   Sign out
