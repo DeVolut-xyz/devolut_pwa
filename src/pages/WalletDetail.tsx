@@ -223,14 +223,6 @@ export function WalletDetailPage() {
                 <Copy size={14} strokeWidth={1.8} />
               </button>
             </div>
-            <a
-              className="balance-sheet-link"
-              href={`https://debank.com/profile/${wallet.address}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              See More on Debank
-            </a>
           </div>
         </div>
         <div className="glass-grid three">
