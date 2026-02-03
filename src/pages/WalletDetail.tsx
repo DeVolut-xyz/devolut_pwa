@@ -48,6 +48,17 @@ export function WalletDetailPage() {
     onRefresh: () => refresh(true),
   })
 
+  const netApy = useMemo(() => {
+    if (!portfolio) {
+      return 0
+    }
+    const totalValue = sumWalletValue(portfolio)
+    if (totalValue <= 0) {
+      return 0
+    }
+    return (portfolio.stats.net_return / totalValue) * 100
+  }, [portfolio])
+
   const tokens = useMemo(() => {
     if (!portfolio) {
       return []
@@ -197,150 +208,146 @@ export function WalletDetailPage() {
 
   return (
     <div className="glass-grid" style={{ gap: 24 }}>
-      <section>
-        <LiquidCard>
-          <div className="glass-header">
-            <div>
-              <div className="glass-title">{wallet.label}</div>
-              <div className="glass-subtitle address-line">
-                {shortenAddress(wallet.address)}
-                <button
-                  className="copy-button"
-                  onClick={() => copyToClipboard(wallet.address)}
-                  title="Copy address"
-                  aria-label="Copy address"
-                >
-                  <Copy size={14} strokeWidth={1.8} />
-                </button>
-              </div>
-              <a
-                className="balance-sheet-link"
-                href={`https://debank.com/profile/${wallet.address}`}
-                target="_blank"
-                rel="noreferrer"
+      <section className="glass-grid" style={{ gap: 16 }}>
+        <div className="glass-header">
+          <div>
+            <div className="glass-title">{wallet.label}</div>
+            <div className="glass-subtitle address-line">
+              {shortenAddress(wallet.address)}
+              <button
+                className="copy-button"
+                onClick={() => copyToClipboard(wallet.address)}
+                title="Copy address"
+                aria-label="Copy address"
               >
-                See More on Debank
-              </a>
+                <Copy size={14} strokeWidth={1.8} />
+              </button>
             </div>
+            <a
+              className="balance-sheet-link"
+              href={`https://debank.com/profile/${wallet.address}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              See More on Debank
+            </a>
           </div>
-          <div className="glass-grid three" style={{ marginTop: 16 }}>
-            <LiquidCard variant="dark">
-              <div className="wallet-meta">Total value</div>
-              <div className="wallet-balance">
-                {portfolio ? formatCurrency(sumWalletValue(portfolio)) : '—'}
-              </div>
-            </LiquidCard>
-            <LiquidCard variant="dark">
-              <div className="wallet-meta">Net APY</div>
-              <div className="wallet-balance">
-                {portfolio ? formatPercent(portfolio.stats.calculated_apy) : '—'}
-              </div>
-              <div className="wallet-meta">Annualized net return</div>
-            </LiquidCard>
-            <LiquidCard variant="dark">
-              <div className="wallet-meta">Exposure mix</div>
-              <div className="wallet-meta">
-                Credit {formatCurrency(portfolio?.stats.total_credit_usd ?? 0)}
-              </div>
-              <div className="wallet-meta">
-                Debt {formatCurrency(portfolio?.stats.total_debt_usd ?? 0)}
-              </div>
-              <div className="wallet-meta">
-                Idle {formatCurrency(portfolio?.stats.total_idle_usd ?? 0)}
-              </div>
-            </LiquidCard>
-          </div>
-          <div className="glass-grid" style={{ marginTop: 16 }}>
-            <LiquidCard variant="dark">
-              <VaultBalanceSheet
-                assets={aggregated.assets}
-                totalValueUsd={aggregated.totalValueUsd}
-                debankUrl={`https://debank.com/profile/${wallet.address}`}
+        </div>
+        <div className="glass-grid three">
+          <LiquidCard variant="dark">
+            <div className="wallet-meta">Total value</div>
+            <div className="wallet-balance">
+              {portfolio ? formatCurrency(sumWalletValue(portfolio)) : '—'}
+            </div>
+          </LiquidCard>
+          <LiquidCard variant="dark">
+            <div className="wallet-meta">Net APY</div>
+            <div className="wallet-balance">
+              {portfolio ? formatPercent(netApy) : '—'}
+            </div>
+            <div className="wallet-meta">Annualized net return</div>
+          </LiquidCard>
+          <LiquidCard variant="dark">
+            <div className="wallet-meta">Exposure mix</div>
+            <div className="wallet-meta">
+              Credit {formatCurrency(portfolio?.stats.total_credit_usd ?? 0)}
+            </div>
+            <div className="wallet-meta">
+              Debt {formatCurrency(portfolio?.stats.total_debt_usd ?? 0)}
+            </div>
+            <div className="wallet-meta">
+              Idle {formatCurrency(portfolio?.stats.total_idle_usd ?? 0)}
+            </div>
+          </LiquidCard>
+        </div>
+        <div className="glass-grid">
+          <LiquidCard variant="dark">
+            <VaultBalanceSheet
+              assets={aggregated.assets}
+              totalValueUsd={aggregated.totalValueUsd}
+              debankUrl={`https://debank.com/profile/${wallet.address}`}
+            />
+            {aggregated.hasCreditOrDebt && (
+              <VaultCreditDebt
+                creditTotalUsd={aggregated.creditTotalUsd}
+                debtTotalUsd={aggregated.debtTotalUsd}
+                baseSupplyApy={aggregated.baseSupplyApy}
+                baseBorrowApy={aggregated.baseBorrowApy}
+                creditProtocols={aggregated.creditProtocols}
+                debtProtocols={aggregated.debtProtocols}
               />
-              {aggregated.hasCreditOrDebt && (
-                <VaultCreditDebt
-                  creditTotalUsd={aggregated.creditTotalUsd}
-                  debtTotalUsd={aggregated.debtTotalUsd}
-                  baseSupplyApy={aggregated.baseSupplyApy}
-                  baseBorrowApy={aggregated.baseBorrowApy}
-                  creditProtocols={aggregated.creditProtocols}
-                  debtProtocols={aggregated.debtProtocols}
-                />
-              )}
-              {aggregated.hasFundsHealth && (
-                <VaultFundsHealth
-                  netStrategyApy={portfolio?.stats.calculated_apy ?? 0}
-                  inUseFunds={aggregated.creditTotalUsd}
-                  availableFunds={aggregated.totalIdleUsd}
-                  healthFactor={
-                    aggregated.debtTotalUsd > 0
-                      ? aggregated.creditTotalUsd / aggregated.debtTotalUsd
-                      : undefined
-                  }
-                />
-              )}
-            </LiquidCard>
-          </div>
-          {error && (
-            <p className="notice" style={{ marginTop: 12 }}>
-              {error}
-            </p>
-          )}
-        </LiquidCard>
+            )}
+            {aggregated.hasFundsHealth && (
+              <VaultFundsHealth
+                netStrategyApy={portfolio?.stats.calculated_apy ?? 0}
+                inUseFunds={aggregated.creditTotalUsd}
+                availableFunds={aggregated.totalIdleUsd}
+                healthFactor={
+                  aggregated.debtTotalUsd > 0
+                    ? aggregated.creditTotalUsd / aggregated.debtTotalUsd
+                    : undefined
+                }
+              />
+            )}
+          </LiquidCard>
+        </div>
+        {error && (
+          <p className="notice" style={{ marginTop: 12 }}>
+            {error}
+          </p>
+        )}
       </section>
 
-      <section>
-        <LiquidCard>
-          <div className="glass-header">
-            <div>
-              <h3>Token breakdown</h3>
-              <p className="notice">
-                Balance, APY, and protocol exposures for this wallet.
-              </p>
-            </div>
+      <section className="glass-grid" style={{ gap: 12 }}>
+        <div className="glass-header">
+          <div>
+            <h3>Token breakdown</h3>
+            <p className="notice">
+              Balance, APY, and protocol exposures for this wallet.
+            </p>
           </div>
-          <LiquidCard variant="dark" style={{ marginTop: 16 }}>
-            <div className="token-row muted" style={{ fontWeight: 600 }}>
-              <div>Token</div>
-              <div>Value</div>
-              <div>APY</div>
-              <div>Protocol</div>
-            </div>
-            {tokens.length === 0 && (
-              <p className="notice" style={{ padding: '16px 0' }}>
-                No positions yet. Add an Alchemy key and refresh.
-              </p>
-            )}
-            {tokens.map((token) => {
-              const tokenKey = buildTokenLogoKey({
-                chainId: token.chainId,
-                address: token.metadata.address,
-                tokenKey: token.key,
-              })
-              const logoUrl =
-                (tokenKey ? getLogo(tokenKey) : undefined) ??
-                getLogo(token.metadata.symbol)
-              return (
-                <div
-                  key={`${token.chainId ?? 'unknown'}-${token.metadata.address}`}
-                  className="token-row"
-                >
-                  <div className="token-cell">
-                    {logoUrl && (
-                      <img src={logoUrl} alt={token.metadata.symbol} />
-                    )}
-                    <div>
-                      <strong>{token.metadata.symbol}</strong>
-                      <div className="wallet-meta">{token.metadata.name}</div>
-                    </div>
+        </div>
+        <LiquidCard variant="dark">
+          <div className="token-row muted" style={{ fontWeight: 600 }}>
+            <div>Token</div>
+            <div>Value</div>
+            <div>APY</div>
+            <div>Protocol</div>
+          </div>
+          {tokens.length === 0 && (
+            <p className="notice" style={{ padding: '16px 0' }}>
+              No positions yet. Add an Alchemy key and refresh.
+            </p>
+          )}
+          {tokens.map((token) => {
+            const tokenKey = buildTokenLogoKey({
+              chainId: token.chainId,
+              address: token.metadata.address,
+              tokenKey: token.key,
+            })
+            const logoUrl =
+              (tokenKey ? getLogo(tokenKey) : undefined) ??
+              getLogo(token.metadata.symbol)
+            return (
+              <div
+                key={`${token.chainId ?? 'unknown'}-${token.metadata.address}`}
+                className="token-row"
+              >
+                <div className="token-cell">
+                  {logoUrl && (
+                    <img src={logoUrl} alt={token.metadata.symbol} />
+                  )}
+                  <div>
+                    <strong>{token.metadata.symbol}</strong>
+                    <div className="wallet-meta">{token.metadata.name}</div>
                   </div>
-                  <div>{formatCurrency(token.value_usd)}</div>
-                  <div>{formatPercent(token.apy)}</div>
-                  <div className="wallet-meta">{token.protocol}</div>
                 </div>
-              )
-            })}
-          </LiquidCard>
+                <div>{formatCurrency(token.value_usd)}</div>
+                <div>{formatPercent(token.apy)}</div>
+                <div className="wallet-meta">{token.protocol}</div>
+              </div>
+            )
+          })}
         </LiquidCard>
       </section>
     </div>

@@ -145,50 +145,48 @@ export function DashboardPage() {
 
   return (
     <div className="glass-grid" style={{ gap: 24 }}>
-      <section>
-        <LiquidCard>
-          <div className="glass-grid two" style={{ marginTop: 16 }}>
-            <LiquidCard variant="dark">
-            <div className="wallet-meta">Total Portfolio Value</div>
-            <div className="wallet-balance">{formatCurrency(totals.totalValue)}</div>
-            <div className="wallet-meta">
-              Net APY {formatPercent(totals.netApy)} •{' '}
-              {totals.updatedAt
-                ? `Updated ${new Date(totals.updatedAt).toLocaleTimeString()}`
-                : 'No data yet'}
-            </div>
-            </LiquidCard>
-            <LiquidCard variant="dark">
-            <div className="wallet-meta">Top exposures</div>
-            <div className="chip-row" style={{ marginTop: 10 }}>
-              {topPositions.length === 0 && (
-                <span className="notice">No positions yet.</span>
-              )}
-              {topPositions.map((position) => {
-                const logoUrl =
-                  getLogo(position.address) ??
-                  getLogo(position.metadata.symbol)
-                return (
-                  <span
-                    key={`${position.sourceWallet}-${position.address}`}
-                    className="glass-chip"
-                  >
-                    {logoUrl && (
-                      <img src={logoUrl} alt={position.metadata.symbol} />
-                    )}
-                    {position.metadata.symbol} · {formatCurrency(position.value_usd)}
-                  </span>
-                )
-              })}
-            </div>
-            </LiquidCard>
+      <section className="glass-grid" style={{ gap: 16 }}>
+        <div className="glass-grid two">
+          <LiquidCard variant="dark">
+          <div className="wallet-meta">Total Portfolio Value</div>
+          <div className="wallet-balance">{formatCurrency(totals.totalValue)}</div>
+          <div className="wallet-meta">
+            Net APY {formatPercent(totals.netApy)} •{' '}
+            {totals.updatedAt
+              ? `Updated ${new Date(totals.updatedAt).toLocaleTimeString()}`
+              : 'No data yet'}
           </div>
-          {error && <p className="notice" style={{ marginTop: 12 }}>{error}</p>}
-        </LiquidCard>
+          </LiquidCard>
+          <LiquidCard variant="dark">
+          <div className="wallet-meta">Top exposures</div>
+          <div className="chip-row" style={{ marginTop: 10 }}>
+            {topPositions.length === 0 && (
+              <span className="notice">No positions yet.</span>
+            )}
+            {topPositions.map((position) => {
+              const logoUrl =
+                getLogo(position.address) ??
+                getLogo(position.metadata.symbol)
+              return (
+                <span
+                  key={`${position.sourceWallet}-${position.address}`}
+                  className="glass-chip"
+                >
+                  {logoUrl && (
+                    <img src={logoUrl} alt={position.metadata.symbol} />
+                  )}
+                  {position.metadata.symbol} · {formatCurrency(position.value_usd)}
+                </span>
+              )
+            })}
+          </div>
+          </LiquidCard>
+        </div>
+        {error && <p className="notice" style={{ marginTop: 12 }}>{error}</p>}
       </section>
 
-      <section className="glass-grid two">
-        <LiquidCard>
+      <section className="glass-grid two" style={{ gap: 24 }}>
+        <div className="glass-grid" style={{ gap: 12 }}>
           <div className="glass-header">
             <div>
               <h3>Tracked wallets</h3>
@@ -277,9 +275,9 @@ export function DashboardPage() {
               </LiquidButton>
             </div>
           </LiquidCard>
-        </LiquidCard>
+        </div>
 
-        <LiquidCard>
+        <div className="glass-grid" style={{ gap: 12 }}>
           <div className="glass-header">
             <div>
               <h3>Data settings</h3>
@@ -375,86 +373,84 @@ export function DashboardPage() {
               </p>
             )}
           </div>
-        </LiquidCard>
+        </div>
       </section>
 
-      <section>
-        <LiquidCard>
-          <div className="glass-header">
-            <div>
-              <h3>Profile</h3>
-              <p className="notice">Personalize your account details.</p>
+      <section className="glass-grid" style={{ gap: 12 }}>
+        <div className="glass-header">
+          <div>
+            <h3>Profile</h3>
+            <p className="notice">Personalize your account details.</p>
+          </div>
+          <div className="toolbar">
+            <LiquidButton
+              variant="secondary"
+              onClick={saveProfileToSupabase}
+              disabled={!isSupabaseConfigured}
+            >
+              Save profile
+            </LiquidButton>
+          </div>
+        </div>
+        <div className="glass-grid two" style={{ marginTop: 12 }}>
+          <div className="glass-panel dark">
+            <div className="profile-avatar">
+              {profile.avatarDataUrl ? (
+                <img src={profile.avatarDataUrl} alt="Profile" />
+              ) : (
+                <span className="notice">No photo</span>
+              )}
             </div>
-            <div className="toolbar">
+            <input
+              className="glass-input"
+              type="file"
+              accept="image/*"
+              onChange={(event) => {
+                const file = event.target.files?.[0]
+                if (!file) return
+                const reader = new FileReader()
+                reader.onload = () => {
+                  updateProfile({ avatarDataUrl: reader.result as string })
+                }
+                reader.readAsDataURL(file)
+              }}
+            />
+            {profile.avatarDataUrl && (
               <LiquidButton
                 variant="secondary"
-                onClick={saveProfileToSupabase}
-                disabled={!isSupabaseConfigured}
+                onClick={() => updateProfile({ avatarDataUrl: '' })}
               >
-                Save profile
+                Remove photo
               </LiquidButton>
-            </div>
+            )}
           </div>
-          <div className="glass-grid two" style={{ marginTop: 12 }}>
-            <div className="glass-panel dark">
-              <div className="profile-avatar">
-                {profile.avatarDataUrl ? (
-                  <img src={profile.avatarDataUrl} alt="Profile" />
-                ) : (
-                  <span className="notice">No photo</span>
-                )}
-              </div>
-              <input
-                className="glass-input"
-                type="file"
-                accept="image/*"
-                onChange={(event) => {
-                  const file = event.target.files?.[0]
-                  if (!file) return
-                  const reader = new FileReader()
-                  reader.onload = () => {
-                    updateProfile({ avatarDataUrl: reader.result as string })
-                  }
-                  reader.readAsDataURL(file)
-                }}
-              />
-              {profile.avatarDataUrl && (
-                <LiquidButton
-                  variant="secondary"
-                  onClick={() => updateProfile({ avatarDataUrl: '' })}
-                >
-                  Remove photo
-                </LiquidButton>
-              )}
-            </div>
-            <div className="glass-grid" style={{ gap: 12 }}>
-              <label className="notice">Nickname</label>
-              <LiquidInput
-                placeholder="Your nickname"
-                value={profile.nickname}
-                onChange={(event) =>
-                  updateProfile({ nickname: event.target.value })
-                }
-              />
-              <label className="notice">Email</label>
-              <LiquidInput
-                type="email"
-                placeholder="you@example.com"
-                value={profile.email}
-                onChange={(event) => updateProfile({ email: event.target.value })}
-              />
-              <label className="notice">Bio</label>
-              <LiquidInput
-                placeholder="Short bio"
-                value={profile.bio}
-                onChange={(event) => updateProfile({ bio: event.target.value })}
-              />
-              {profileSaveError && (
-                <p className="notice">{profileSaveError}</p>
-              )}
-            </div>
+          <div className="glass-grid" style={{ gap: 12 }}>
+            <label className="notice">Nickname</label>
+            <LiquidInput
+              placeholder="Your nickname"
+              value={profile.nickname}
+              onChange={(event) =>
+                updateProfile({ nickname: event.target.value })
+              }
+            />
+            <label className="notice">Email</label>
+            <LiquidInput
+              type="email"
+              placeholder="you@example.com"
+              value={profile.email}
+              onChange={(event) => updateProfile({ email: event.target.value })}
+            />
+            <label className="notice">Bio</label>
+            <LiquidInput
+              placeholder="Short bio"
+              value={profile.bio}
+              onChange={(event) => updateProfile({ bio: event.target.value })}
+            />
+            {profileSaveError && (
+              <p className="notice">{profileSaveError}</p>
+            )}
           </div>
-        </LiquidCard>
+        </div>
       </section>
     </div>
   )

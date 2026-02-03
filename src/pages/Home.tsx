@@ -227,185 +227,181 @@ export function HomePage() {
 
   return (
     <div className="glass-grid" style={{ gap: 24 }}>
-      <section>
-        <LiquidCard>
-          <div className="glass-grid two" style={{ marginTop: 16 }}>
-            <LiquidCard variant="dark">
-              <div className="wallet-meta">Total Portfolio Value</div>
-              {showSkeleton ? (
-                <div className="skeleton-block">
-                  <div className="skeleton-line wide" />
-                  <div className="skeleton-line" />
+      <section className="glass-grid" style={{ gap: 16 }}>
+        <div className="glass-grid two">
+          <LiquidCard variant="dark">
+            <div className="wallet-meta">Total Portfolio Value</div>
+            {showSkeleton ? (
+              <div className="skeleton-block">
+                <div className="skeleton-line wide" />
+                <div className="skeleton-line" />
+              </div>
+            ) : (
+              <>
+                <div className="wallet-balance">
+                  {formatCurrency(totals.totalValue)}
                 </div>
-              ) : (
-                <>
-                  <div className="wallet-balance">
-                    {formatCurrency(totals.totalValue)}
-                  </div>
-                  <div className="wallet-meta">
-                    Net APY {formatPercent(totals.netApy)} •{' '}
-                    {totals.updatedAt
-                      ? `Updated ${new Date(totals.updatedAt).toLocaleTimeString()}`
-                      : 'No data yet'}
-                  </div>
-                  <div className="wallet-meta">
-                    Annual {formatCurrency(annualRevenue)} • Monthly{' '}
-                    {formatCurrency(monthlyRevenue)}
-                  </div>
-                </>
-              )}
-            </LiquidCard>
-          </div>
-          <div className="glass-grid" style={{ marginTop: 16 }}>
-            <LiquidCard variant="dark">
-              <VaultBalanceSheet
-                assets={aggregated.assets}
-                totalValueUsd={aggregated.totalValueUsd}
-                isLoading={loading}
-                debankUrl={
-                  wallets.length === 1
-                    ? `https://debank.com/profile/${wallets[0].address}`
+                <div className="wallet-meta">
+                  Net APY {formatPercent(totals.netApy)} •{' '}
+                  {totals.updatedAt
+                    ? `Updated ${new Date(totals.updatedAt).toLocaleTimeString()}`
+                    : 'No data yet'}
+                </div>
+                <div className="wallet-meta">
+                  Annual {formatCurrency(annualRevenue)} • Monthly{' '}
+                  {formatCurrency(monthlyRevenue)}
+                </div>
+              </>
+            )}
+          </LiquidCard>
+        </div>
+        <div className="glass-grid">
+          <LiquidCard variant="dark">
+            <VaultBalanceSheet
+              assets={aggregated.assets}
+              totalValueUsd={aggregated.totalValueUsd}
+              isLoading={loading}
+              debankUrl={
+                wallets.length === 1
+                  ? `https://debank.com/profile/${wallets[0].address}`
+                  : undefined
+              }
+            />
+            {aggregated.hasCreditOrDebt && (
+              <VaultCreditDebt
+                creditTotalUsd={aggregated.creditTotalUsd}
+                debtTotalUsd={aggregated.debtTotalUsd}
+                baseSupplyApy={aggregated.baseSupplyApy}
+                baseBorrowApy={aggregated.baseBorrowApy}
+                creditProtocols={aggregated.creditProtocols}
+                debtProtocols={aggregated.debtProtocols}
+              />
+            )}
+            {aggregated.hasFundsHealth && (
+              <VaultFundsHealth
+                netStrategyApy={totals.netApy}
+                inUseFunds={aggregated.creditTotalUsd}
+                availableFunds={aggregated.totalIdleUsd}
+                healthFactor={
+                  aggregated.debtTotalUsd > 0
+                    ? aggregated.creditTotalUsd / aggregated.debtTotalUsd
                     : undefined
                 }
               />
-              {aggregated.hasCreditOrDebt && (
-                <VaultCreditDebt
-                  creditTotalUsd={aggregated.creditTotalUsd}
-                  debtTotalUsd={aggregated.debtTotalUsd}
-                  baseSupplyApy={aggregated.baseSupplyApy}
-                  baseBorrowApy={aggregated.baseBorrowApy}
-                  creditProtocols={aggregated.creditProtocols}
-                  debtProtocols={aggregated.debtProtocols}
-                />
-              )}
-              {aggregated.hasFundsHealth && (
-                <VaultFundsHealth
-                  netStrategyApy={totals.netApy}
-                  inUseFunds={aggregated.creditTotalUsd}
-                  availableFunds={aggregated.totalIdleUsd}
-                  healthFactor={
-                    aggregated.debtTotalUsd > 0
-                      ? aggregated.creditTotalUsd / aggregated.debtTotalUsd
-                      : undefined
-                  }
-                />
-              )}
-            </LiquidCard>
-          </div>
-          {error && (
-            <p className="notice error-log" style={{ marginTop: 12 }}>
-              {error}
-            </p>
-          )}
-        </LiquidCard>
+            )}
+          </LiquidCard>
+        </div>
+        {error && (
+          <p className="notice error-log" style={{ marginTop: 12 }}>
+            {error}
+          </p>
+        )}
       </section>
 
-      <section>
-        <LiquidCard>
-          <div className="glass-header">
-            <div className="glass-title">Wallets</div>
-            <div className="toolbar">
-              <span className="status-pill header-chip chip-info">
-                <Wallet className="chip-icon" size={14} strokeWidth={1.8} />
-                {wallets.length} {wallets.length === 1 ? 'wallet' : 'wallets'}
-              </span>
-              <LiquidButton
-                variant="secondary"
-                className="header-chip"
-                onClick={syncFromSupabase}
-                disabled={!supabaseConfigured}
-                title="Sync"
-                aria-label="Sync"
-              >
-                <RefreshCw className="chip-icon" size={14} strokeWidth={1.8} />
-              </LiquidButton>
-              <Link
-                className="glass-button secondary link header-chip"
-                to="/settings"
-                title="Manage"
-                aria-label="Manage"
-              >
-                <Wallet className="chip-icon" size={14} strokeWidth={1.8} />
-              </Link>
-            </div>
+      <section className="glass-grid" style={{ gap: 10 }}>
+        <div className="glass-header">
+          <div className="glass-title">Wallets</div>
+          <div className="toolbar">
+            <span className="status-pill header-chip chip-info">
+              <Wallet className="chip-icon" size={14} strokeWidth={1.8} />
+              {wallets.length} {wallets.length === 1 ? 'wallet' : 'wallets'}
+            </span>
+            <LiquidButton
+              variant="secondary"
+              className="header-chip"
+              onClick={syncFromSupabase}
+              disabled={!supabaseConfigured}
+              title="Sync"
+              aria-label="Sync"
+            >
+              <RefreshCw className="chip-icon" size={14} strokeWidth={1.8} />
+            </LiquidButton>
+            <Link
+              className="glass-button secondary link header-chip"
+              to="/settings"
+              title="Manage"
+              aria-label="Manage"
+            >
+              <Wallet className="chip-icon" size={14} strokeWidth={1.8} />
+            </Link>
           </div>
-          <div className="wallet-header-spacer" />
-          {syncError && (
-            <p className="notice error-log" style={{ marginTop: 8 }}>
-              {syncError}
-            </p>
+        </div>
+        <div className="wallet-header-spacer" />
+        {syncError && (
+          <p className="notice error-log" style={{ marginTop: 8 }}>
+            {syncError}
+          </p>
+        )}
+        <div className="glass-grid wallet-list" style={{ gap: 10 }}>
+          {wallets.length === 0 && (
+            <p className="notice">No wallets yet. Add your first address.</p>
           )}
-          <div className="glass-grid wallet-list" style={{ gap: 10 }}>
-            {wallets.length === 0 && (
-              <p className="notice">No wallets yet. Add your first address.</p>
-            )}
-            {wallets.map((wallet) => {
-              const portfolio = data[wallet.address.toLowerCase()]
-              const healthFactor =
-                portfolio && portfolio.stats.total_debt_usd > 0
-                  ? portfolio.stats.total_credit_usd / portfolio.stats.total_debt_usd
-                  : undefined
-              return (
-                <LiquidCard
-                  key={wallet.id}
-                  variant="dark"
-                  className="wallet-card compact clickable"
-                  onClick={() => navigate(`/address/${wallet.address}`)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault()
-                      navigate(`/address/${wallet.address}`)
-                    }
-                  }}
-                >
-                  <div className="wallet-title">
-                    <div>
-                      <strong>{wallet.label}</strong>
-                      <div className="wallet-meta address-line">
-                        {shortenAddress(wallet.address)}
-                        <button
-                          className="copy-button"
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            copyToClipboard(wallet.address)
-                          }}
-                          title="Copy address"
-                          aria-label="Copy address"
-                        >
-                          <Copy size={14} strokeWidth={1.8} />
-                        </button>
-                      </div>
+          {wallets.map((wallet) => {
+            const portfolio = data[wallet.address.toLowerCase()]
+            const healthFactor =
+              portfolio && portfolio.stats.total_debt_usd > 0
+                ? portfolio.stats.total_credit_usd / portfolio.stats.total_debt_usd
+                : undefined
+            return (
+              <LiquidCard
+                key={wallet.id}
+                variant="dark"
+                className="wallet-card compact clickable"
+                onClick={() => navigate(`/address/${wallet.address}`)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    navigate(`/address/${wallet.address}`)
+                  }
+                }}
+              >
+                <div className="wallet-title">
+                  <div>
+                    <strong>{wallet.label}</strong>
+                    <div className="wallet-meta address-line">
+                      {shortenAddress(wallet.address)}
+                      <button
+                        className="copy-button"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          copyToClipboard(wallet.address)
+                        }}
+                        title="Copy address"
+                        aria-label="Copy address"
+                      >
+                        <Copy size={14} strokeWidth={1.8} />
+                      </button>
                     </div>
                   </div>
-                  <div className="wallet-summary">
-                    <div className="wallet-summary-item">
-                      <span className="wallet-summary-label">Balance</span>
-                      <span className="wallet-summary-value">
-                        {portfolio ? formatCurrency(sumWalletValue(portfolio)) : '—'}
-                      </span>
-                    </div>
-                    <div className="wallet-summary-item">
-                      <span className="wallet-summary-label">Net APY</span>
-                      <span className="wallet-summary-value">
-                        {portfolio
-                          ? formatPercent(portfolio.stats.calculated_apy)
-                          : '—'}
-                      </span>
-                    </div>
-                    <div className="wallet-summary-item">
-                      <span className="wallet-summary-label">Health</span>
-                      <span className="wallet-summary-value">
-                        {healthFactor !== undefined ? healthFactor.toFixed(2) : '—'}
-                      </span>
-                    </div>
+                </div>
+                <div className="wallet-summary">
+                  <div className="wallet-summary-item">
+                    <span className="wallet-summary-label">Balance</span>
+                    <span className="wallet-summary-value">
+                      {portfolio ? formatCurrency(sumWalletValue(portfolio)) : '—'}
+                    </span>
                   </div>
-                </LiquidCard>
-              )
-            })}
-          </div>
-        </LiquidCard>
+                  <div className="wallet-summary-item">
+                    <span className="wallet-summary-label">Net APY</span>
+                    <span className="wallet-summary-value">
+                      {portfolio
+                        ? formatPercent(portfolio.stats.calculated_apy)
+                        : '—'}
+                    </span>
+                  </div>
+                  <div className="wallet-summary-item">
+                    <span className="wallet-summary-label">Health</span>
+                    <span className="wallet-summary-value">
+                      {healthFactor !== undefined ? healthFactor.toFixed(2) : '—'}
+                    </span>
+                  </div>
+                </div>
+              </LiquidCard>
+            )
+          })}
+        </div>
       </section>
     </div>
   )

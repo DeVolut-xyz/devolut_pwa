@@ -59,8 +59,8 @@ export function SettingsPage() {
 
   return (
     <div className="glass-grid" style={{ gap: 24 }}>
-      <section className="glass-grid two">
-        <LiquidCard>
+      <section className="glass-grid two" style={{ gap: 24 }}>
+        <div className="glass-grid" style={{ gap: 12 }}>
           <div className="glass-header">
             <div>
               <h3>Tracked wallets</h3>
@@ -146,9 +146,9 @@ export function SettingsPage() {
               </LiquidButton>
             </div>
           </LiquidCard>
-        </LiquidCard>
+        </div>
 
-        <LiquidCard>
+        <div className="glass-grid" style={{ gap: 12 }}>
           <div className="glass-header">
             <div>
               <h3>Data settings</h3>
@@ -210,7 +210,7 @@ export function SettingsPage() {
               </p>
             )}
           </div>
-        </LiquidCard>
+        </div>
       </section>
     </div>
   )
