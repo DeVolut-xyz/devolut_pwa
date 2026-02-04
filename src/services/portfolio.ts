@@ -100,7 +100,6 @@ export async function fetchWalletPortfolio({
 }
 
 export function sumWalletValue(portfolio: WalletPortfolio): number {
-  const { stats } = portfolio
   return (
     portfolio.stats.total_idle_usd +
     portfolio.stats.total_credit_usd -
