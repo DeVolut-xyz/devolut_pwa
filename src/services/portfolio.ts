@@ -64,10 +64,21 @@ export async function fetchWalletPortfolio({
       console.error('[portfolio] chain fetch error', { address, chainId, error })
     }
   }
-  const stats = await new FactorVaultAnalytics(
+  const rawStats = await new FactorVaultAnalytics(
     chainIds[0] ?? ChainId.ETHEREUM,
     alchemyApiKey,
   ).calculateVaultStats(deposits as Parameters<FactorVaultAnalytics['calculateVaultStats']>[0])
+
+  const totalValue =
+    rawStats.total_idle_usd + rawStats.total_credit_usd - rawStats.total_debt_usd
+  const calculated_apy =
+    totalValue > 0 ? (rawStats.net_return / totalValue) * 100 : 0
+
+  const stats: VaultStats = {
+    ...rawStats,
+    calculated_apy,
+  }
+
   return {
     address,
     deposits,
@@ -95,5 +106,7 @@ export function formatCurrency(value: number) {
 }
 
 export function formatPercent(value: number) {
-  return `${value.toFixed(2)}%`
+  const n = Number(value)
+  if (n !== n || !Number.isFinite(n)) return '0.00%'
+  return `${n.toFixed(2)}%`
 }
