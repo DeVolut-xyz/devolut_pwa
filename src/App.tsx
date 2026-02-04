@@ -1,9 +1,17 @@
-import { Suspense, lazy } from 'react'
-import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom'
+import { Suspense, lazy, useEffect } from 'react'
+import { BrowserRouter, Navigate, Route, Routes, useParams, useLocation } from 'react-router-dom'
 import './App.css'
 import { AppShell } from './components/AppShell'
 import { InstallGate } from './components/InstallGate'
 import { useAuth } from './state/useAuth'
+
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
+  return null
+}
 
 const WelcomePage = lazy(() =>
   import('./pages/Welcome').then((module) => ({ default: module.WelcomePage })),
@@ -34,6 +42,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <InstallGate>
         <Suspense fallback={<div className="notice">Loading...</div>}>
           <Routes>
