@@ -5,12 +5,7 @@ import { useWallets } from '../state/useWallets'
 import { usePortfolioData } from '../hooks/usePortfolioData'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
 import { isSupabaseConfigured } from '../services/supabase'
-import {
-  formatCurrency,
-  formatPercent,
-  sumWalletValue,
-  type VaultTokenMetadata,
-} from '../services/portfolio'
+import { formatCurrency, formatPercent, sumWalletValue } from '../services/portfolio'
 import { buildTokenLogoKey, useTokenLogos } from '../data/tokenLogos'
 import { VaultBalanceSheet } from '../components/VaultBalanceSheet'
 import { VaultCreditDebt } from '../components/VaultCreditDebt'
@@ -74,7 +69,7 @@ export function HomePage() {
       protocol: string
     }> = []
     Object.values(data).forEach((portfolio) => {
-      Object.entries(portfolio.deposits).forEach(([tokenKey, deposit]: [string, VaultTokenMetadata]) => {
+      Object.entries(portfolio.deposits).forEach(([tokenKey, deposit]) => {
         const normalizedKey = buildTokenLogoKey({
           chainId: deposit.chainId,
           address: deposit.metadata.address,

@@ -1,11 +1,13 @@
 import { ChainId } from '@factordao/tokenlist'
 import { FactorVaultAnalytics } from '@factordao/vault-analytics'
 
+/** Matches @factordao/vault-analytics VaultTokenMetadata for type compatibility */
 export type VaultTokenMetadata = {
+  balance: bigint
   balance_fmt: number
   chainId: ChainId
-  type: string
-  protocol: string
+  type: 'unknown' | 'idle' | 'debt' | 'credit' | 'supply'
+  protocol: 'unknown' | 'aave' | 'compound' | 'pendle' | 'silo' | 'morpho' | 'reth'
   value_usd: number
   reward_apy: number
   apy: number
@@ -14,100 +16,77 @@ export type VaultTokenMetadata = {
     symbol: string
     name: string
     decimals: number
-    address: string
-    underlying: string
+    address: `0x${string}`
+    underlying: `0x${string}`
   }
 }
+
+export type VaultDepositsWithMetadata = Record<string, VaultTokenMetadata>
 
 export type VaultStats = {
   total_idle_usd: number
   total_debt_usd: number
   total_credit_usd: number
+  weighted_apy_credit: number
+  weighted_apy_debt: number
+  credit_return: number
+  debt_interests: number
   net_return: number
   calculated_apy: number
 }
 
 export type WalletPortfolio = {
-  address: string
-  deposits: Record<string, VaultTokenMetadata>
+  address: `0x${string}`
+  deposits: VaultDepositsWithMetadata
   stats: VaultStats
   updatedAt: string
 }
-
-const OPTIMISM = 10 as ChainId
-const chainIdsFilter = (ids: ChainId[]) =>
-  ids.filter((id) => id !== OPTIMISM) as ChainId[]
 
 export async function fetchWalletPortfolio({
   address,
   chainIds,
   alchemyApiKey,
 }: {
-  address: string
+  address: `0x${string}`
   chainIds: ChainId[]
   alchemyApiKey: string
 }): Promise<WalletPortfolio> {
-  const ids = chainIdsFilter(chainIds)
-  if (ids.length === 0) {
-    return {
-      address,
-      deposits: {},
-      stats: {
-        total_idle_usd: 0,
-        total_debt_usd: 0,
-        total_credit_usd: 0,
-        net_return: 0,
-        calculated_apy: 0,
-      },
-      updatedAt: new Date().toISOString(),
+  const deposits: VaultDepositsWithMetadata = {}
+  for (const chainId of chainIds) {
+    try {
+      const analytics = new FactorVaultAnalytics(chainId, alchemyApiKey)
+      const chainDeposits = await analytics.getVaultDeposits(address)
+      for (const [tokenAddress, deposit] of Object.entries(chainDeposits)) {
+        const key = `${chainId}:${tokenAddress}`
+        deposits[key] = deposit
+      }
+    } catch (error) {
+      console.error('[portfolio] chain fetch error', { address, chainId, error })
     }
   }
-  const analytics = new FactorVaultAnalytics(ids[0], alchemyApiKey)
-  const deposits = await analytics.getVaultDeposits(address as `0x${string}`)
-  const stats = await analytics.calculateVaultStats(deposits, 0)
-  const normalized: Record<string, VaultTokenMetadata> = {}
-  for (const [k, v] of Object.entries(deposits)) {
-    normalized[k] = {
-      balance_fmt: v.balance_fmt,
-      chainId: v.chainId,
-      type: v.type,
-      protocol: v.protocol,
-      value_usd: v.value_usd,
-      reward_apy: v.reward_apy,
-      apy: v.apy,
-      apr: v.apr,
-      metadata: {
-        symbol: v.metadata.symbol,
-        name: v.metadata.name,
-        decimals: v.metadata.decimals,
-        address: v.metadata.address,
-        underlying: v.metadata.underlying,
-      },
-    }
-  }
+  const stats = await new FactorVaultAnalytics(
+    chainIds[0] ?? ChainId.ETHEREUM,
+    alchemyApiKey,
+  ).calculateVaultStats(deposits as Parameters<FactorVaultAnalytics['calculateVaultStats']>[0])
   return {
     address,
-    deposits: normalized,
-    stats: {
-      total_idle_usd: stats.total_idle_usd,
-      total_debt_usd: stats.total_debt_usd,
-      total_credit_usd: stats.total_credit_usd,
-      net_return: stats.net_return,
-      calculated_apy: stats.calculated_apy,
-    },
+    deposits,
+    stats,
     updatedAt: new Date().toISOString(),
   }
 }
 
-export function sumWalletValue(portfolio: WalletPortfolio): number {
-  return (
-    portfolio.stats.total_idle_usd +
-    portfolio.stats.total_credit_usd -
-    portfolio.stats.total_debt_usd
+export function sumWalletValue(portfolio?: WalletPortfolio) {
+  if (!portfolio) {
+    return 0
+  }
+  return Object.values(portfolio.deposits).reduce(
+    (acc, item) => acc + item.value_usd,
+    0,
   )
 }
 
-export function formatCurrency(value: number): string {
+export function formatCurrency(value: number) {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -115,8 +94,6 @@ export function formatCurrency(value: number): string {
   }).format(value)
 }
 
-export function formatPercent(value: number): string {
-  const n = Number(value)
-  if (n !== n || !isFinite(n)) return '0.00%'
-  return `${n.toFixed(2)}%`
+export function formatPercent(value: number) {
+  return `${value.toFixed(2)}%`
 }
